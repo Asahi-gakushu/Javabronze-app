@@ -7,8 +7,11 @@ through short multiple-choice quizzes.
 
 ## Features
 
-- Five topics: Java Basics, Control Flow, OOP Fundamentals, Collections, and Exceptions
-- Immediate per-question feedback with explanations
+- Question bank organized into 8 chapters aligned with the Oracle Java SE
+  Bronze exam objectives (program flow, data declaration, operators &
+  conditionals, loops, OOP concepts, class/object basics, inheritance, and
+  polymorphism/packages)
+- Immediate per-question feedback with explanations, in Japanese
 - Score summary with a Bronze / Silver / Gold tier at the end of each quiz
 - Best score per topic is saved locally in the browser (`localStorage`)
 
