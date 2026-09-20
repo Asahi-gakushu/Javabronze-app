@@ -6,9 +6,9 @@ import type { Topic } from "@/types";
 import { recordAttempt } from "@/lib/progress";
 
 function tierFor(pct: number): { label: string; className: string } {
-  if (pct >= 90) return { label: "Gold", className: "bg-yellow-100 text-yellow-800" };
-  if (pct >= 70) return { label: "Silver", className: "bg-slate-200 text-slate-700" };
-  return { label: "Bronze", className: "bg-bronze-light text-bronze-dark" };
+  if (pct >= 90) return { label: "ゴールド", className: "bg-yellow-100 text-yellow-800" };
+  if (pct >= 70) return { label: "シルバー", className: "bg-slate-200 text-slate-700" };
+  return { label: "ブロンズ", className: "bg-bronze-light text-bronze-dark" };
 }
 
 export default function QuizClient({ topic }: { topic: Topic }) {
@@ -55,17 +55,17 @@ export default function QuizClient({ topic }: { topic: Topic }) {
     const tier = tierFor(percent);
     return (
       <div className="mx-auto max-w-md text-center">
-        <h1 className="text-2xl font-bold">Quiz complete!</h1>
+        <h1 className="text-2xl font-bold">クイズ終了!</h1>
         <p className="mt-2 opacity-70">{topic.title}</p>
         <div className="mt-6 rounded-xl border border-bronze-light p-6">
           <p className="text-4xl font-bold">
             {score}/{topic.questions.length}
           </p>
-          <p className="mt-1 opacity-70">{percent}% correct</p>
+          <p className="mt-1 opacity-70">正答率 {percent}%</p>
           <span
             className={`mt-4 inline-block rounded-full px-3 py-1 text-sm font-semibold ${tier.className}`}
           >
-            {tier.label} tier
+            {tier.label}ティア
           </span>
         </div>
         <div className="mt-6 flex justify-center gap-3">
@@ -73,13 +73,13 @@ export default function QuizClient({ topic }: { topic: Topic }) {
             onClick={restart}
             className="rounded-lg bg-bronze px-4 py-2 font-medium text-white hover:bg-bronze-dark"
           >
-            Retry quiz
+            もう一度挑戦する
           </button>
           <Link
             href="/"
             className="rounded-lg border border-bronze-light px-4 py-2 font-medium hover:border-bronze"
           >
-            Back to topics
+            トピック一覧に戻る
           </Link>
         </div>
       </div>
@@ -91,7 +91,7 @@ export default function QuizClient({ topic }: { topic: Topic }) {
       <div className="flex items-center justify-between text-sm opacity-70">
         <span>{topic.title}</span>
         <span>
-          Question {questionIndex + 1} of {topic.questions.length}
+          質問 {questionIndex + 1} / {topic.questions.length}
         </span>
       </div>
       <div className="mt-2 h-1.5 w-full rounded-full bg-bronze-light">
@@ -142,7 +142,7 @@ export default function QuizClient({ topic }: { topic: Topic }) {
       {answered && (
         <div className="mt-4 rounded-lg bg-bronze-light/40 p-4 text-sm">
           <p className="font-medium">
-            {selectedIndex === question.correctIndex ? "Correct!" : "Not quite."}
+            {selectedIndex === question.correctIndex ? "正解!" : "残念…"}
           </p>
           <p className="mt-1 opacity-80">{question.explanation}</p>
         </div>
@@ -154,7 +154,7 @@ export default function QuizClient({ topic }: { topic: Topic }) {
           disabled={!answered}
           className="rounded-lg bg-bronze px-5 py-2 font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-bronze-dark"
         >
-          {isLast ? "Finish" : "Next question"}
+          {isLast ? "終了する" : "次の質問へ"}
         </button>
       </div>
     </div>

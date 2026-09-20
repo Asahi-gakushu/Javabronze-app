@@ -14,14 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Javabronze — Learn Java",
-  description: "Bite-sized quizzes for building bronze-level Java fundamentals.",
+  title: "Javabronze — Javaを学ぼう",
+  description: "ブロンズレベルのJavaの基礎を身につけるための、短時間クイズ。",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
-      lang="en"
+      lang="ja"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
@@ -33,13 +33,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 Java<span className="text-bronze-dark">bronze</span>
               </span>
             </Link>
-            <span className="text-sm opacity-70">Beginner Java quizzes</span>
+            <span className="text-sm opacity-70">初心者向けJavaクイズ</span>
           </div>
         </header>
         <main className="flex-1 mx-auto w-full max-w-4xl px-6 py-8">{children}</main>
         <footer className="border-t border-bronze-light">
           <div className="mx-auto max-w-4xl px-6 py-4 text-sm opacity-60">
-            Practice. Fail. Try again. That&apos;s how bronze becomes silver.
+            練習して、失敗して、また挑戦する。それがブロンズをシルバーに変える道。
           </div>
         </footer>
       </body>

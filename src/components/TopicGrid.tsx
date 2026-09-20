@@ -30,7 +30,7 @@ export default function TopicGrid({ topics }: { topics: Topic[] }) {
               {pct !== null && (
                 <span
                   className="shrink-0 rounded-full bg-bronze-light px-2 py-0.5 text-xs font-medium text-bronze-dark"
-                  title={`Best score: ${p.bestScore}/${p.total}`}
+                  title={`最高スコア: ${p.bestScore}/${p.total}`}
                 >
                   {pct}%
                 </span>
@@ -38,7 +38,7 @@ export default function TopicGrid({ topics }: { topics: Topic[] }) {
             </div>
             <p className="mt-1 text-sm opacity-70">{topic.description}</p>
             <p className="mt-3 text-sm font-medium text-bronze-dark">
-              {p ? "Play again →" : "Start quiz →"}
+              {p ? "もう一度挑戦する →" : "クイズを始める →"}
             </p>
           </Link>
         );
