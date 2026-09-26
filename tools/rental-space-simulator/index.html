@@ -357,7 +357,7 @@ function exitChecks(p) {
     { when: "6ヶ月", rule: "稼働率30%+単月黒字(目標)", status: st(o >= t.m6Target && r.profit >= 0, true) },
     { when: "見直し2回後", rule: "稼働率25%未満なら撤退", status: o < t.afterReviewExit ? "ng" : "ok" },
     { when: "12ヶ月", rule: "稼働率30%未満なら撤退", status: o < t.m12Exit ? "ng" : "ok" },
-    { when: "12ヶ月", rule: "稼働率40%で合格、45%で目標", status: o >= t.m12Goal ? "ok" : o >= t.m12Pass ? "ok" : "warn" },
+    { when: "12ヶ月", rule: "稼働率40%で合格、45%で目標", status: o >= t.m12Pass ? "ok" : "warn" },
     { when: "随時", rule: "運転資金が固定費3ヶ月分を割ったら撤退か縮小", status: cashMonths === Infinity ? "ok" : cashMonths === 0 ? "ng" : "warn", cashMonths },
   ];
 }
