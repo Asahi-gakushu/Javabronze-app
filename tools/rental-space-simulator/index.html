@@ -208,72 +208,93 @@
 
 <!-- 計算ロジック(DOM に触れない純粋関数)。test.mjs がこの script を取り出して検証する -->
 <script id="calc">
-// concept.md 3-1 / 2-1 と market-report.md 5-2 の数字
+// concept.md 第3版「前提(第3版)」「時間帯ごとの使い方」「時間単価」の数字
 const DEFAULTS = {
-  rent: 120000,
-  otherFixed: 40000,          // 固定費16万円 − 家賃12万円
-  initialInvestment: 2500000, // 400万円配分のうち運転資金を除いた分
-  workingCapital: 1500000,
-  openHour: 8,
-  closeHour: 23,
+  rent: 70000,
+  otherFixed: 45000,          // 固定費11.5万円 − 家賃7万円(光熱1.5・通信0.5・ツール0.5・消耗品1・保険0.3・事業系ゴミ0.5・雑費0.2)
+  initialInvestment: 1100000, // 初期投資の上限(運転資金を除く)
+  workingCapital: 700000,
+  openHour: 6,
+  earlyEndHour: 9,
   nightStartHour: 17,
+  closeHour: 23,
   daysPerMonth: 30,
   holidayDays: 9,
+  priceEarly: 1200,
   priceWeekdayDay: 1500,
-  priceWeekdayNight: 2500,
-  priceHoliday: 3000,         // 3,000〜3,500円の下限(保守的)
-  occWeekdayDay: 15,          // 6ヶ月目の補助KPI「平日昼の稼働率15%」
-  occWeekdayNight: 35,
-  occHoliday: 50,
+  priceWeekdayNight: 2600,
+  priceHoliday: 3500,
+  occEarly: 10,               // 早朝の目標は低め(10%)
+  occWeekdayDay: 23,          // 昼・夜・土日祝の配分は仮置き。全体で約40%(12ヶ月目標)になるように置いた
+  occWeekdayNight: 55,
+  occHoliday: 70,
+  occM1: 10,                  // 立ち上げ:1ヶ月目10% → 3ヶ月20% → 6ヶ月30% → 12ヶ月(上の時間帯別から)
+  occM3: 20,
+  occM6: 30,
+  openingDiscount: 25,        // オープニング価格は1ヶ月目のみ25%引き
   feeRate: 30,
-  cleaningCost: 2000,
-  avgHoursPerBooking: 4.7,
+  cleaningCost: 1500,
+  avgHoursPerBooking: 4,
 };
 
-// concept.md 3-3 の撤退基準と 3-2 の目標(稼働率は 0〜1)
+// concept.md 第3版「撤退基準」と「1年回収に必要な数字」(稼働率は 0〜1、分母は営業時間の合計)
 const THRESHOLDS = {
+  m3Caution: 0.12,        // 3ヶ月で12%未満:注意(写真・掲載文・価格の見直し)
   m3Target: 0.20,
-  m6Yellow: 0.20,
+  m6Yellow: 0.20,         // 6ヶ月で20%未満:黄信号(見直し 2ヶ月×2回まで)
   m6Target: 0.30,
-  afterReviewExit: 0.25,
-  m12Exit: 0.30,
-  m12Pass: 0.40,
-  m12Goal: 0.45,
+  reviewMonth: 10,        // 見直し2回後 = 6ヶ月 + 2ヶ月×2
+  afterReviewExit: 0.18,
+  m12Exit: 0.20,          // 12ヶ月で20%未満:撤退判断
+  m12Continue: 0.30,      // 20〜30%:条件付き継続、30%以上:継続
+  m12Target: 0.40,
   upside: 0.50,
+  m18Exit: 0.30,          // 条件付き継続のとき、18ヶ月目に30%未満なら撤退
+  paybackOnTrack: 0.8,    // 12ヶ月の累積が初期投資の80%以上:ほぼ計画どおり
+  paybackSwitch: 0.5,     // 50%未満:18ヶ月回収の計画に切り替え(これだけでは撤退しない)
   cashLineMonths: 3,
-  paybackTargetMonths: 24,
+  paybackTargetMonths: 12,
+  paybackPlanMonths: 18,
 };
 
 function clamp(x, lo, hi) {
   return Math.min(hi, Math.max(lo, x));
 }
 
-// 時間帯ごとの月間の営業時間(容量)
+// 時間帯ごとの月間の営業時間(容量)。早朝は毎日、昼・夜は平日のみ、土日祝は早朝の後から閉店まで
 function slotCapacity(p) {
   const open = clamp(p.openHour, 0, 24);
   const close = clamp(p.closeHour, open, 24);
+  const earlyEnd = clamp(p.earlyEndHour, open, close);
+  const night = clamp(p.nightStartHour, earlyEnd, close);
   const hoursPerDay = close - open;
-  const night = clamp(p.nightStartHour, open, close);
   const days = Math.max(0, p.daysPerMonth);
   const holidayDays = clamp(p.holidayDays, 0, days);
   const weekdays = days - holidayDays;
   return {
     hoursPerDay,
-    weekdayDay: weekdays * (night - open),
+    early: days * (earlyEnd - open),
+    weekdayDay: weekdays * (night - earlyEnd),
     weekdayNight: weekdays * (close - night),
-    holiday: holidayDays * hoursPerDay,
+    holiday: holidayDays * (close - earlyEnd),
     total: days * hoursPerDay,
   };
 }
 
-// 固定の入力値で1ヶ月の収支を出す。稼働率・手数料率は % で受け取る
+const SLOT_KEYS = [
+  { key: "early", price: "priceEarly", occ: "occEarly" },
+  { key: "weekdayDay", price: "priceWeekdayDay", occ: "occWeekdayDay" },
+  { key: "weekdayNight", price: "priceWeekdayNight", occ: "occWeekdayNight" },
+  { key: "holiday", price: "priceHoliday", occ: "occHoliday" },
+];
+
+// 固定の入力値で1ヶ月の収支を出す(12ヶ月目以降の定常状態)。稼働率・手数料率は % で受け取る
 function monthlyResult(p) {
   const cap = slotCapacity(p);
-  const slots = [
-    { key: "weekdayDay", capacity: cap.weekdayDay, price: p.priceWeekdayDay, occ: clamp(p.occWeekdayDay, 0, 100) / 100 },
-    { key: "weekdayNight", capacity: cap.weekdayNight, price: p.priceWeekdayNight, occ: clamp(p.occWeekdayNight, 0, 100) / 100 },
-    { key: "holiday", capacity: cap.holiday, price: p.priceHoliday, occ: clamp(p.occHoliday, 0, 100) / 100 },
-  ].map((s) => ({ ...s, hours: s.capacity * s.occ, revenue: s.capacity * s.occ * s.price }));
+  const slots = SLOT_KEYS.map((k) => {
+    const occ = clamp(p[k.occ], 0, 100) / 100;
+    return { key: k.key, capacity: cap[k.key], price: p[k.price], occ, hours: cap[k.key] * occ, revenue: cap[k.key] * occ * p[k.price] };
+  });
 
   const hours = slots.reduce((a, s) => a + s.hours, 0);
   const revenue = slots.reduce((a, s) => a + s.revenue, 0);
@@ -299,20 +320,19 @@ function monthlyResult(p) {
   };
 }
 
-// 予約1時間あたりの貢献利益(手取り単価 − 1時間あたり清掃費)。
-// 平均単価は今の時間帯の比率で決まる。予約が0なら営業時間の比率で重み付けする
-function contributionPerHour(p) {
+// 平均単価。今の時間帯の比率で決まる。予約が0なら営業時間の比率で重み付けする
+function averagePrice(p) {
   const r = monthlyResult(p);
-  let avgPrice = r.avgPrice;
-  if (r.hours === 0) {
-    const cap = r.capacity;
-    avgPrice = cap.total > 0
-      ? (cap.weekdayDay * p.priceWeekdayDay + cap.weekdayNight * p.priceWeekdayNight + cap.holiday * p.priceHoliday) / cap.total
-      : 0;
-  }
+  if (r.hours > 0) return r.avgPrice;
+  const cap = r.capacity;
+  return cap.total > 0 ? SLOT_KEYS.reduce((a, k) => a + cap[k.key] * p[k.price], 0) / cap.total : 0;
+}
+
+// 予約1時間あたりの貢献利益(手取り単価 − 1時間あたり清掃費)。discount は単価の割引率(0〜1)
+function contributionPerHour(p, discount = 0) {
   const feeRate = clamp(p.feeRate, 0, 100) / 100;
   const cleaningPerHour = p.avgHoursPerBooking > 0 ? p.cleaningCost / p.avgHoursPerBooking : 0;
-  return avgPrice * (1 - feeRate) - cleaningPerHour;
+  return averagePrice(p) * (1 - discount) * (1 - feeRate) - cleaningPerHour;
 }
 
 // 月利益が targetProfit になる全体稼働率(0〜1、100%超もそのまま返す)。達成不能なら Infinity
@@ -327,65 +347,130 @@ function breakEvenOccupancy(p) {
   return occupancyForProfit(p, 0);
 }
 
-// 初期投資を months ヶ月で回収するのに必要な稼働率
+// 開業月から毎月同じ稼働率だったとき、初期投資を months ヶ月で回収するのに必要な稼働率(割引は無視)
 function occupancyForPayback(p, months) {
   return occupancyForProfit(p, p.initialInvestment / months);
 }
 
-// 投資回収月数。赤字・0円なら Infinity
+// month ヶ月目の全体稼働率(0〜1)。1→3→6→12ヶ月の間は直線、12ヶ月目以降は occ12 のまま
+function occupancyAtMonth(p, month, occ12) {
+  const pts = [
+    [1, clamp(p.occM1, 0, 100) / 100],
+    [3, clamp(p.occM3, 0, 100) / 100],
+    [6, clamp(p.occM6, 0, 100) / 100],
+    [12, occ12],
+  ];
+  if (month <= 1) return pts[0][1];
+  if (month >= 12) return occ12;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const [m0, o0] = pts[i];
+    const [m1, o1] = pts[i + 1];
+    if (month <= m1) return o0 + ((o1 - o0) * (month - m0)) / (m1 - m0);
+  }
+  return occ12;
+}
+
+// 開業から months ヶ月の月ごとの損益と累積。平均単価は今の時間帯の比率で一定、1ヶ月目だけ割引
+function monthlyPath(p, months = THRESHOLDS.paybackPlanMonths, occ12 = monthlyResult(p).occupancy) {
+  const total = slotCapacity(p).total;
+  const fixed = p.rent + p.otherFixed;
+  const discount = clamp(p.openingDiscount, 0, 100) / 100;
+  const rows = [];
+  let cumulative = 0;
+  for (let m = 1; m <= months; m++) {
+    const occupancy = occupancyAtMonth(p, m, occ12);
+    const hours = occupancy * total;
+    const profit = hours * contributionPerHour(p, m === 1 ? discount : 0) - fixed;
+    cumulative += profit;
+    rows.push({ month: m, occupancy, hours, profit, cumulative });
+  }
+  return rows;
+}
+
+// 累積の営業利益が初期投資に並ぶ月(立ち上げの推移込み)。maxMonths までに届かなければ Infinity
+function paybackMonth(p, maxMonths = 120) {
+  if (p.initialInvestment <= 0) return 0;
+  const hit = monthlyPath(p, maxMonths).find((r) => r.cumulative >= p.initialInvestment);
+  return hit ? hit.month : Infinity;
+}
+
+// 12ヶ月で回収するのに必要な「12ヶ月目の全体稼働率」(1・3・6ヶ月目は入力のまま)。
+// 12ヶ月の累積は12ヶ月目の稼働率について一次式なので、2点から解く。達成不能なら Infinity
+function occupancyFor12MonthPayback(p) {
+  const n = THRESHOLDS.paybackTargetMonths;
+  const a = monthlyPath(p, n, 0)[n - 1].cumulative;
+  const b = monthlyPath(p, n, 1)[n - 1].cumulative - a;
+  if (b <= 0) return a >= p.initialInvestment ? 0 : Infinity;
+  return Math.max(0, (p.initialInvestment - a) / b);
+}
+
+// 定常の月利益で割った単純な回収月数。赤字・0円なら Infinity
 function paybackMonths(initialInvestment, monthlyProfit) {
   if (monthlyProfit <= 0) return Infinity;
   return initialInvestment / monthlyProfit;
 }
 
-// 全体の稼働率を scale 倍したときの入力(時間帯の比率は維持、各枠は100%で頭打ち)
+// 全体の稼働率を targetOccupancy にしたときの入力(時間帯の比率は維持、各枠は100%で頭打ち)
 function scaleOccupancy(p, targetOccupancy) {
   const base = monthlyResult(p).occupancy;
-  if (base === 0) {
-    return { ...p, occWeekdayDay: targetOccupancy * 100, occWeekdayNight: targetOccupancy * 100, occHoliday: targetOccupancy * 100 };
-  }
-  const k = targetOccupancy / base;
-  return {
-    ...p,
-    occWeekdayDay: clamp(p.occWeekdayDay * k, 0, 100),
-    occWeekdayNight: clamp(p.occWeekdayNight * k, 0, 100),
-    occHoliday: clamp(p.occHoliday * k, 0, 100),
-  };
+  const q = { ...p };
+  SLOT_KEYS.forEach((k) => {
+    q[k.occ] = base === 0 ? targetOccupancy * 100 : clamp(p[k.occ] * (targetOccupancy / base), 0, 100);
+  });
+  return q;
 }
 
-// 赤字が続いたとき、運転資金が「固定費3ヶ月分」を割るまでの月数。黒字なら Infinity
-function monthsToCashLine(workingCapital, monthlyFixed, monthlyProfit) {
-  const line = monthlyFixed * THRESHOLDS.cashLineMonths;
-  if (workingCapital < line) return 0;
-  if (monthlyProfit >= 0) return Infinity;
-  return (workingCapital - line) / -monthlyProfit;
+// 運転資金が「固定費3ヶ月分」を割る月(立ち上げの推移込み)。はじめから下回るなら 0、割らなければ Infinity
+function cashLineMonth(p, months = THRESHOLDS.paybackPlanMonths) {
+  const line = (p.rent + p.otherFixed) * THRESHOLDS.cashLineMonths;
+  if (p.workingCapital < line) return 0;
+  const hit = monthlyPath(p, months).find((r) => p.workingCapital + Math.min(0, r.cumulative) < line);
+  return hit ? hit.month : Infinity;
 }
 
-// 12ヶ月時点の総合判定
+// 12ヶ月時点の継続・撤退の判定(稼働率だけで決まる部分)
 function judge12Months(occupancy) {
   const t = THRESHOLDS;
-  if (occupancy < t.m12Exit) return { status: "ng", label: "撤退", detail: "12ヶ月時点で稼働率30%未満。解約予告を出す水準" };
-  if (occupancy < t.m12Pass) return { status: "warn", label: "継続(合格未満)", detail: "撤退ラインは超えるが、合格ライン40%に届かない" };
-  if (occupancy < t.m12Goal) return { status: "ok", label: "合格", detail: "12ヶ月の合格ライン40%以上" };
-  if (occupancy <= t.upside) return { status: "ok", label: "目標達成", detail: "12ヶ月の目標45%以上(2年回収ペース)" };
-  return { status: "ok", label: "上振れ", detail: "50%超。3ヶ月連続なら2室目の検討を始める" };
+  if (occupancy < t.m12Exit) return { status: "ng", label: "撤退判断", detail: "12ヶ月時点で稼働率20%未満。解約を予告する水準" };
+  if (occupancy < t.m12Continue) return { status: "warn", label: "条件付き継続", detail: "20〜30%。単月黒字が続き、直近3ヶ月の稼働率が上向きなら継続。18ヶ月目に30%未満なら撤退" };
+  if (occupancy < t.m12Target) return { status: "warn", label: "継続(目標40%未満)", detail: "30%以上で撤退基準にはかからないが、12ヶ月目標の40%に届かない。1年回収は立ち上げの推移しだい" };
+  if (occupancy <= t.upside) return { status: "ok", label: "継続(目標達成)", detail: "12ヶ月目標の40%以上" };
+  return { status: "ok", label: "上振れ", detail: "50%超。3ヶ月続けば2室目の検討を始める(社長の判断)" };
 }
 
-// 各時点の基準との照合一覧
-function exitChecks(p) {
-  const r = monthlyResult(p);
+// 12ヶ月時点の「1年回収の判定」。ratio = 12ヶ月の累積利益 ÷ 初期投資
+function paybackReview(ratio) {
   const t = THRESHOLDS;
-  const o = r.occupancy;
-  const cashMonths = monthsToCashLine(p.workingCapital, r.fixed, r.profit);
-  const st = (ok, warn) => (ok ? "ok" : warn ? "warn" : "ng");
+  if (ratio >= 1) return { status: "ok", label: "12ヶ月で回収", detail: "累積利益が初期投資に届いた" };
+  if (ratio >= t.paybackOnTrack) return { status: "ok", label: "ほぼ計画どおり", detail: "初期投資の80%以上" };
+  if (ratio >= t.paybackSwitch) return { status: "warn", label: "計画より遅れ", detail: "初期投資の50〜80%。18ヶ月で回収できるかを確認する" };
+  return { status: "warn", label: "18ヶ月回収の計画へ", detail: "初期投資の50%未満。計画を切り替える(これだけでは撤退しない)" };
+}
+
+// 各時点の基準との照合一覧。value は判定に使った値(format で表示方法を示す)
+function exitChecks(p) {
+  const t = THRESHOLDS;
+  const r = monthlyResult(p);
+  const path = monthlyPath(p, t.paybackPlanMonths);
+  const at = (m) => path[m - 1];
+  const o3 = at(3).occupancy, o6 = at(6).occupancy, oReview = at(t.reviewMonth).occupancy;
+  const o12 = r.occupancy, o18 = at(18).occupancy;
+  const ratio12 = p.initialInvestment > 0 ? at(12).cumulative / p.initialInvestment : Infinity;
+  const ratio18 = p.initialInvestment > 0 ? at(18).cumulative / p.initialInvestment : Infinity;
+  const j12 = judge12Months(o12);
+  const pr = paybackReview(ratio12);
+  const cash = cashLineMonth(p);
   return [
-    { when: "3ヶ月", rule: "稼働率20%(目標)", status: st(o >= t.m3Target, true) },
-    { when: "6ヶ月", rule: "稼働率20%未満なら黄信号(見直し)", status: o < t.m6Yellow ? "warn" : "ok" },
-    { when: "6ヶ月", rule: "稼働率30%+単月黒字(目標)", status: st(o >= t.m6Target && r.profit >= 0, true) },
-    { when: "見直し2回後", rule: "稼働率25%未満なら撤退", status: o < t.afterReviewExit ? "ng" : "ok" },
-    { when: "12ヶ月", rule: "稼働率30%未満なら撤退", status: o < t.m12Exit ? "ng" : "ok" },
-    { when: "12ヶ月", rule: "稼働率40%で合格、45%で目標", status: o >= t.m12Pass ? "ok" : "warn" },
-    { when: "随時", rule: "運転資金が固定費3ヶ月分を割ったら撤退か縮小", status: cashMonths === Infinity ? "ok" : cashMonths === 0 ? "ng" : "warn", cashMonths },
+    { when: "3ヶ月", rule: "稼働率12%未満なら注意(写真・掲載文・価格を見直す)", value: o3, format: "pct", status: o3 < t.m3Caution ? "warn" : "ok" },
+    { when: "3ヶ月", rule: "稼働率20%(1年回収の目標)", value: o3, format: "pct", status: o3 >= t.m3Target ? "ok" : "warn" },
+    { when: "6ヶ月", rule: "稼働率20%未満なら黄信号(見直し 2ヶ月×2回まで)", value: o6, format: "pct", status: o6 < t.m6Yellow ? "warn" : "ok" },
+    { when: "6ヶ月", rule: "稼働率30%(1年回収の目標)", value: o6, format: "pct", status: o6 >= t.m6Target ? "ok" : "warn" },
+    { when: "見直し2回後(10ヶ月)", rule: "黄信号から見直しを2回しても18%未満なら撤退判断", value: oReview, format: "pct", status: o6 < t.m6Yellow && oReview < t.afterReviewExit ? "ng" : "ok" },
+    { when: "12ヶ月", rule: "稼働率20%未満なら撤退判断、20〜30%は条件付き継続、30%以上で継続(目標40%)", value: o12, format: "pct", status: j12.status, label: j12.label },
+    { when: "12ヶ月", rule: "累積利益が初期投資の80%以上なら「ほぼ計画どおり」、50%未満なら18ヶ月回収の計画へ", value: ratio12, format: "ratio", status: pr.status, label: pr.label },
+    { when: "18ヶ月", rule: "条件付き継続のとき、稼働率30%未満なら撤退", value: o18, format: "pct", status: o12 < t.m12Continue && o18 < t.m18Exit ? "ng" : "ok" },
+    { when: "18ヶ月", rule: "初期投資を回収(資金計画の前提)", value: ratio18, format: "ratio", status: ratio18 >= 1 ? "ok" : "warn" },
+    { when: "随時", rule: `運転資金が固定費${t.cashLineMonths}ヶ月分を割ったら、撤退か縮小を決める`, value: cash, format: "cash", status: cash === Infinity ? "ok" : cash === 0 ? "ng" : "warn" },
   ];
 }
 </script>
@@ -393,14 +478,17 @@ function exitChecks(p) {
 <!-- 画面(入力の読み取りと描画) -->
 <script>
 (function () {
-  const STORAGE_KEY = "rental-space-simulator:inputs";
+  // 第2版の初期値が残らないよう、第3版でキーを変えた
+  const STORAGE_KEY = "rental-space-simulator:inputs:v3";
   const keys = Object.keys(DEFAULTS);
   const $ = (id) => document.getElementById(id);
   const yen = (n) => (Number.isFinite(n) ? Math.round(n).toLocaleString("ja-JP") + "円" : "—");
   const man = (n) => (Number.isFinite(n) ? (n / 10000).toLocaleString("ja-JP", { maximumFractionDigits: 1 }) + "万円" : "—");
+  const signMan = (n) => (n >= 0 ? "+" : "−") + man(Math.abs(n));
   const pct = (x) => (Number.isFinite(x) ? (x * 100).toFixed(1) + "%" : "達成不能");
   const signYen = (n) => (n >= 0 ? "+" : "−") + Math.abs(Math.round(n)).toLocaleString("ja-JP") + "円";
-  const STATUS_LABEL = { ok: "クリア", warn: "注意", ng: "未達" };
+  const monthLabel = (m) => (m === 0 ? "開業前に回収" : Number.isFinite(m) ? `${m}ヶ月目` : "10年以内に回収できない");
+  const STATUS_LABEL = { ok: "クリア", warn: "注意", ng: "撤退水準" };
 
   function loadSaved() {
     if (typeof window === "undefined") return null;
@@ -431,41 +519,64 @@ function exitChecks(p) {
     return `<div class="kpi"><div class="k">${label}</div><div class="v ${cls || ""}">${value}</div><div class="s">${sub || ""}</div></div>`;
   }
 
+  function checkValue(c) {
+    if (c.format === "pct") return pct(c.value);
+    if (c.format === "ratio") return Number.isFinite(c.value) ? `初期投資の${Math.round(c.value * 100)}%` : "—";
+    return c.value === Infinity ? "18ヶ月で割らない" : c.value === 0 ? "開業時に下回る" : `${c.value}ヶ月目に割る`;
+  }
+
   function render() {
     const p = read();
     save(p);
+    const t = THRESHOLDS;
     const r = monthlyResult(p);
     const cap = r.capacity;
     const be = breakEvenOccupancy(p);
-    const pb = paybackMonths(p.initialInvestment, r.profit);
-    const need24 = occupancyForPayback(p, THRESHOLDS.paybackTargetMonths);
+    const pbm = paybackMonth(p);
+    const need12 = occupancyFor12MonthPayback(p);
+    const needFlat = occupancyForPayback(p, t.paybackTargetMonths);
+    const path = monthlyPath(p, t.paybackPlanMonths);
+    const cum12 = path[11].cumulative;
 
-    const open = clamp(p.openHour, 0, 24), close = clamp(p.closeHour, open, 24), night = clamp(p.nightStartHour, open, close);
-    $("lbl-weekdayDay").textContent = `平日昼(${open}〜${night}時・月${Math.round(cap.weekdayDay)}時間)`;
+    const open = clamp(p.openHour, 0, 24), close = clamp(p.closeHour, open, 24);
+    const early = clamp(p.earlyEndHour, open, close), night = clamp(p.nightStartHour, early, close);
+    $("lbl-early").textContent = `早朝(${open}〜${early}時・毎日・月${Math.round(cap.early)}時間)`;
+    $("lbl-weekdayDay").textContent = `平日昼(${early}〜${night}時・月${Math.round(cap.weekdayDay)}時間)`;
     $("lbl-weekdayNight").textContent = `平日夜(${night}〜${close}時・月${Math.round(cap.weekdayNight)}時間)`;
-    $("lbl-holiday").textContent = `休日(${open}〜${close}時・月${Math.round(cap.holiday)}時間)`;
+    $("lbl-holiday").textContent = `土日祝(${early}〜${close}時・月${Math.round(cap.holiday)}時間)`;
 
     $("kpis").innerHTML =
-      kpi("月売上", yen(r.revenue), `予約 ${r.hours.toFixed(0)}時間 / 約${r.bookings.toFixed(1)}件`) +
+      kpi("月売上", yen(r.revenue), `予約 ${r.hours.toFixed(0)}時間 / 約${r.bookings.toFixed(1)}件 / 平均単価 ${yen(r.avgPrice)}(目標2,700円)`) +
       kpi("月利益", signYen(r.profit), `年間 ${man(r.profit * 12)}`, r.profit >= 0 ? "pos" : "neg") +
-      kpi("全体の稼働率", pct(r.occupancy), `営業 月${cap.total}時間中`) +
+      kpi("全体の稼働率", pct(r.occupancy), `営業 月${cap.total}時間中(12ヶ月目標40%)`) +
       kpi("損益分岐稼働率", pct(be), Number.isFinite(be) ? `月${(be * cap.total).toFixed(0)}時間` : "単価が清掃費・手数料を下回る") +
-      kpi("投資回収月数", Number.isFinite(pb) ? pb.toFixed(1) + "ヶ月" : "回収不可", `初期投資 ${man(p.initialInvestment)}`, Number.isFinite(pb) ? "" : "neg") +
-      kpi("2年回収に必要な稼働率", pct(need24), `平均単価 ${yen(r.avgPrice)}/時(目標2,400円)`);
+      kpi("回収する月", Number.isFinite(pbm) ? monthLabel(pbm) : "回収不可", `立ち上げの推移込み・初期投資 ${man(p.initialInvestment)}`, pbm > t.paybackPlanMonths ? "neg" : pbm > t.paybackTargetMonths ? "" : "pos") +
+      kpi("12ヶ月回収に必要な稼働率", need12 > 1 ? "達成不能" : pct(need12), `12ヶ月目の値。開業月から毎月同じなら ${needFlat > 1 ? "達成不能" : pct(needFlat)}`, need12 > r.occupancy ? "neg" : "pos");
+
+    const ok12 = pbm <= t.paybackTargetMonths;
+    const pbStatus = ok12 ? "ok" : pbm <= t.paybackPlanMonths ? "warn" : "ng";
+    const pbTitle = ok12 ? `12ヶ月で回収できる(${monthLabel(pbm)})` : `12ヶ月では回収できない(${Number.isFinite(pbm) ? monthLabel(pbm) + "に回収" : "10年以内に回収できない"})`;
+    const pbDetail = `12ヶ月目の累積 ${signMan(cum12)} / 初期投資 ${man(p.initialInvestment)}。12ヶ月で回収するには、12ヶ月目の稼働率 ${need12 > 1 ? "100%超(達成不能)" : pct(need12)} が必要(今の入力 ${pct(r.occupancy)})。` +
+      (ok12 ? "" : pbm <= t.paybackPlanMonths ? " 資金計画の前提(18ヶ月)には収まる。" : " 資金計画の前提(18ヶ月)も超える。");
+    $("payback").innerHTML = `<div class="verdict st-${pbStatus}">${pbTitle}<small>${pbDetail}</small></div>`;
 
     const v = judge12Months(r.occupancy);
     $("verdict").innerHTML = `<div class="verdict st-${v.status}">12ヶ月時点なら:${v.label}(稼働率 ${pct(r.occupancy)})<small>${v.detail}</small></div>`;
 
     const checks = exitChecks(p);
-    $("checks").innerHTML = "<tr><th>時点</th><th>基準</th><th>判定</th></tr>" + checks.map((c) => {
-      let label = STATUS_LABEL[c.status];
-      if (c.cashMonths !== undefined) {
-        label = c.cashMonths === Infinity ? "黒字のため減らない" : c.cashMonths === 0 ? "すでに下回る" : `約${c.cashMonths.toFixed(1)}ヶ月で到達`;
-      }
-      return `<tr><td>${c.when}</td><td>${c.rule}</td><td><span class="badge st-${c.status}">${label}</span></td></tr>`;
-    }).join("");
+    $("checks").innerHTML = '<tr><th>時点</th><th>基準</th><th class="num">値</th><th>判定</th></tr>' + checks.map((c) =>
+      `<tr><td>${c.when}</td><td>${c.rule}</td><td class="num">${checkValue(c)}</td><td><span class="badge st-${c.status}">${c.label || STATUS_LABEL[c.status]}</span></td></tr>`
+    ).join("");
 
-    const names = { weekdayDay: "平日昼", weekdayNight: "平日夜", holiday: "休日" };
+    $("monthly").innerHTML =
+      '<tr><th class="num">月</th><th class="num">稼働率</th><th class="num">予約時間</th><th class="num">月の損益</th><th class="num">累積</th><th class="num">初期投資比</th></tr>' +
+      path.map((m) => {
+        const cls = m.month === pbm ? "current" : "";
+        const note = m.month === 1 && p.openingDiscount > 0 ? `(${p.openingDiscount}%引き)` : "";
+        return `<tr class="${cls}"><td class="num">${m.month}${note}</td><td class="num">${pct(m.occupancy)}</td><td class="num">${m.hours.toFixed(0)}</td><td class="num ${m.profit >= 0 ? "pos" : "neg"}">${signMan(m.profit)}</td><td class="num ${m.cumulative >= p.initialInvestment ? "pos" : ""}">${signMan(m.cumulative)}</td><td class="num">${p.initialInvestment > 0 ? Math.round((m.cumulative / p.initialInvestment) * 100) + "%" : "—"}</td></tr>`;
+      }).join("");
+
+    const names = { early: "早朝", weekdayDay: "平日昼", weekdayNight: "平日夜", holiday: "土日祝" };
     $("breakdown").innerHTML =
       '<tr><th>項目</th><th class="num">時間</th><th class="num">金額</th></tr>' +
       r.slots.map((s) => `<tr><td>売上:${names[s.key]}(${yen(s.price)}/時 × ${(s.occ * 100).toFixed(0)}%)</td><td class="num">${s.hours.toFixed(1)}</td><td class="num">${yen(s.revenue)}</td></tr>`).join("") +
@@ -474,16 +585,18 @@ function exitChecks(p) {
       `<tr><td>固定費(家賃 ${yen(p.rent)} + その他 ${yen(p.otherFixed)})</td><td></td><td class="num neg">−${yen(r.fixed)}</td></tr>` +
       `<tr><td><strong>月利益</strong></td><td class="num">${r.hours.toFixed(1)}</td><td class="num ${r.profit >= 0 ? "pos" : "neg"}"><strong>${signYen(r.profit)}</strong></td></tr>`;
 
-    const levels = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6];
+    const levels = [0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6];
     const nearest = levels.reduce((a, b) => (Math.abs(b - r.occupancy) < Math.abs(a - r.occupancy) ? b : a));
     $("sensitivity").innerHTML =
-      '<tr><th class="num">稼働率</th><th class="num">月売上</th><th class="num">月利益</th><th class="num">回収月数</th><th>12ヶ月判定</th></tr>' +
+      '<tr><th class="num">12ヶ月目の稼働率</th><th class="num">月利益</th><th class="num">12ヶ月の累積</th><th class="num">回収する月</th><th>12ヶ月判定</th></tr>' +
       levels.map((lv) => {
         const q = scaleOccupancy(p, lv);
         const s = monthlyResult(q);
-        const m = paybackMonths(p.initialInvestment, s.profit);
+        const c12 = monthlyPath(q, 12)[11].cumulative;
+        const m = paybackMonth(q);
         const j = judge12Months(s.occupancy);
-        return `<tr class="${lv === nearest ? "current" : ""}"><td class="num">${pct(s.occupancy)}</td><td class="num">${yen(s.revenue)}</td><td class="num ${s.profit >= 0 ? "pos" : "neg"}">${signYen(s.profit)}</td><td class="num">${Number.isFinite(m) ? m.toFixed(1) + "ヶ月" : "—"}</td><td><span class="badge st-${j.status}">${j.label}</span></td></tr>`;
+        const mCls = m <= t.paybackTargetMonths ? "pos" : m > t.paybackPlanMonths ? "neg" : "";
+        return `<tr class="${lv === nearest ? "current" : ""}"><td class="num">${pct(s.occupancy)}</td><td class="num ${s.profit >= 0 ? "pos" : "neg"}">${signYen(s.profit)}</td><td class="num">${signMan(c12)}</td><td class="num ${mCls}">${Number.isFinite(m) ? monthLabel(m) : "—"}</td><td><span class="badge st-${j.status}">${j.label}</span></td></tr>`;
       }).join("");
   }
 
