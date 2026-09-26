@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>レンタルスペース収支シミュレーター</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --text: #1d232b;
+    --muted: #5d6773;
+    --line: #dde1e6;
+    --accent: #2f6fdb;
+    --ok: #1d8a4e;
+    --ok-bg: #e6f5ec;
+    --warn: #9a6400;
+    --warn-bg: #fdf3dc;
+    --ng: #c0392b;
+    --ng-bg: #fbe8e6;
+    --input-bg: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161b;
+      --panel: #1b2027;
+      --text: #e7ebf0;
+      --muted: #9aa5b1;
+      --line: #2e353f;
+      --accent: #6ea0ff;
+      --ok: #5fd08f;
+      --ok-bg: #173226;
+      --warn: #f0c060;
+      --warn-bg: #3a2f14;
+      --ng: #ff7b6e;
+      --ng-bg: #3d1e1b;
+      --input-bg: #12161b;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", sans-serif;
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 20px 16px 48px; }
+  h1 { font-size: 1.35rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 0 0 12px; }
+  p.lead { margin: 0 0 20px; color: var(--muted); font-size: 0.9rem; }
+  .layout { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 820px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  fieldset { border: 0; margin: 0 0 14px; padding: 0; min-width: 0; }
+  legend { font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; padding: 0; }
+  .field { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .field label { font-size: 0.88rem; color: var(--muted); }
+  .field .unit-wrap { display: flex; align-items: center; gap: 4px; }
+  .field .unit { font-size: 0.8rem; color: var(--muted); min-width: 2.2em; }
+  input[type=number] {
+    width: 100%; min-width: 0; padding: 6px 8px; font: inherit; font-size: 0.95rem; text-align: right;
+    color: var(--text); background: var(--input-bg); border: 1px solid var(--line); border-radius: 6px;
+  }
+  input[type=number]:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+  .slot { border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 8px; }
+  .slot-title { font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+  .note { font-size: 0.8rem; color: var(--muted); margin: 4px 0 0; }
+  button {
+    font: inherit; font-size: 0.88rem; padding: 7px 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--panel); color: var(--text);
+  }
+  button:hover { border-color: var(--accent); }
+  .kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  @media (max-width: 520px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .kpi { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .kpi .k { font-size: 0.78rem; color: var(--muted); }
+  .kpi .v { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .kpi .s { font-size: 0.75rem; color: var(--muted); }
+  .pos { color: var(--ok); }
+  .neg { color: var(--ng); }
+  .verdict { border-radius: 8px; padding: 12px 14px; margin-bottom: 12px; font-weight: 600; }
+  .verdict small { display: block; font-weight: 400; font-size: 0.82rem; margin-top: 2px; }
+  .st-ok { background: var(--ok-bg); color: var(--ok); }
+  .st-warn { background: var(--warn-bg); color: var(--warn); }
+  .st-ng { background: var(--ng-bg); color: var(--ng); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.86rem; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 7px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 0.8rem; }
+  td.num, th.num { text-align: right; white-space: nowrap; }
+  .badge { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+  tr.current td { background: color-mix(in srgb, var(--accent) 12%, transparent); font-weight: 600; }
+  footer { font-size: 0.78rem; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>レンタルスペース収支シミュレーター</h1>
+  <p class="lead">数字を変えると即座に再計算します。初期値は concept.md(2026-09-26 初版)の前提です。金額はすべて税抜・月額。</p>
+
+  <div class="layout">
+    <form class="panel" id="form" autocomplete="off" onsubmit="return false">
+      <h2>入力</h2>
+
+      <fieldset>
+        <legend>固定費・投資</legend>
+        <div class="field"><label for="rent">家賃(共益費込み)</label><div class="unit-wrap"><input type="number" id="rent" min="0" step="5000"><span class="unit">円</span></div></div>
+        <div class="field"><label for="otherFixed">その他固定費(光熱・通信・消耗品など)</label><div class="unit-wrap"><input type="number" id="otherFixed" min="0" step="1000"><span class="unit">円</span></div></div>
+        <div class="field"><label for="initialInvestment">初期投資(運転資金を除く)</label><div class="unit-wrap"><input type="number" id="initialInvestment" min="0" step="50000"><span class="unit">円</span></div></div>
+        <div class="field"><label for="workingCapital">運転資金(手元資金)</label><div class="unit-wrap"><input type="number" id="workingCapital" min="0" step="50000"><span class="unit">円</span></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>営業時間・日数</legend>
+        <div class="field"><label for="openHour">開店時刻</label><div class="unit-wrap"><input type="number" id="openHour" min="0" max="24" step="1"><span class="unit">時</span></div></div>
+        <div class="field"><label for="closeHour">閉店時刻</label><div class="unit-wrap"><input type="number" id="closeHour" min="0" max="24" step="1"><span class="unit">時</span></div></div>
+        <div class="field"><label for="nightStartHour">平日「夜」の開始時刻</label><div class="unit-wrap"><input type="number" id="nightStartHour" min="0" max="24" step="1"><span class="unit">時</span></div></div>
+        <div class="field"><label for="daysPerMonth">月の営業日数</label><div class="unit-wrap"><input type="number" id="daysPerMonth" min="0" max="31" step="1"><span class="unit">日</span></div></div>
+        <div class="field"><label for="holidayDays">うち休日(土日祝)</label><div class="unit-wrap"><input type="number" id="holidayDays" min="0" max="31" step="1"><span class="unit">日</span></div></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>時間帯別の単価と稼働率</legend>
+        <div class="slot">
+          <div class="slot-title" id="lbl-weekdayDay">平日昼</div>
+          <div class="field"><label for="priceWeekdayDay">単価</label><div class="unit-wrap"><input type="number" id="priceWeekdayDay" min="0" step="100"><span class="unit">円/時</span></div></div>
+          <div class="field"><label for="occWeekdayDay">稼働率</label><div class="unit-wrap"><input type="number" id="occWeekdayDay" min="0" max="100" step="1"><span class="unit">%</span></div></div>
+        </div>
+        <div class="slot">
+          <div class="slot-title" id="lbl-weekdayNight">平日夜</div>
+          <div class="field"><label for="priceWeekdayNight">単価</label><div class="unit-wrap"><input type="number" id="priceWeekdayNight" min="0" step="100"><span class="unit">円/時</span></div></div>
+          <div class="field"><label for="occWeekdayNight">稼働率</label><div class="unit-wrap"><input type="number" id="occWeekdayNight" min="0" max="100" step="1"><span class="unit">%</span></div></div>
+        </div>
+        <div class="slot">
+          <div class="slot-title" id="lbl-holiday">休日(終日)</div>
+          <div class="field"><label for="priceHoliday">単価</label><div class="unit-wrap"><input type="number" id="priceHoliday" min="0" step="100"><span class="unit">円/時</span></div></div>
+          <div class="field"><label for="occHoliday">稼働率</label><div class="unit-wrap"><input type="number" id="occHoliday" min="0" max="100" step="1"><span class="unit">%</span></div></div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>変動費</legend>
+        <div class="field"><label for="feeRate">ポータル手数料率</label><div class="unit-wrap"><input type="number" id="feeRate" min="0" max="100" step="1"><span class="unit">%</span></div></div>
+        <div class="field"><label for="cleaningCost">清掃費(1予約あたり)</label><div class="unit-wrap"><input type="number" id="cleaningCost" min="0" step="100"><span class="unit">円</span></div></div>
+        <div class="field"><label for="avgHoursPerBooking">平均利用時間(1予約あたり)</label><div class="unit-wrap"><input type="number" id="avgHoursPerBooking" min="0.5" step="0.1"><span class="unit">時間</span></div></div>
+        <p class="note">手数料の目安:スペースマーケット30%、インスタベース35%、カシカシ25%(market-report.md 第2章)。</p>
+      </fieldset>
+
+      <button type="button" id="reset">concept.md の初期値に戻す</button>
+    </form>
+
+    <div>
+      <section class="panel">
+        <h2>月次収支</h2>
+        <div class="kpis" id="kpis"></div>
+      </section>
+
+      <section class="panel">
+        <h2>撤退基準の判定(concept.md 3-3)</h2>
+        <div id="verdict"></div>
+        <div class="table-wrap"><table id="checks"></table></div>
+        <p class="note">判定は「今の入力の稼働率が、その時点の実績だったら」という前提です。即時撤退(大家・行政からの是正要求)は数字では判定できないため対象外。上振れは3ヶ月連続が条件です。</p>
+      </section>
+
+      <section class="panel">
+        <h2>内訳</h2>
+        <div class="table-wrap"><table id="breakdown"></table></div>
+      </section>
+
+      <section class="panel">
+        <h2>稼働率を変えたら(今の時間帯の比率のまま全体を増減)</h2>
+        <div class="table-wrap"><table id="sensitivity"></table></div>
+      </section>
+
+      <footer>前提:稼働率 = 予約時間 ÷ 営業時間の合計。損益 = 売上 ×(1 − 手数料率)− 清掃費 × 予約件数 − 固定費。計算式は同じフォルダの README.md を参照。</footer>
+    </div>
+  </div>
+</main>
+
+<!-- 計算ロジック(DOM に触れない純粋関数)。test.mjs がこの script を取り出して検証する -->
+<script id="calc">
+// concept.md 3-1 / 2-1 と market-report.md 5-2 の数字
+const DEFAULTS = {
+  rent: 120000,
+  otherFixed: 40000,          // 固定費16万円 − 家賃12万円
+  initialInvestment: 2500000, // 400万円配分のうち運転資金を除いた分
+  workingCapital: 1500000,
+  openHour: 8,
+  closeHour: 23,
+  nightStartHour: 17,
+  daysPerMonth: 30,
+  holidayDays: 9,
+  priceWeekdayDay: 1500,
+  priceWeekdayNight: 2500,
+  priceHoliday: 3000,         // 3,000〜3,500円の下限(保守的)
+  occWeekdayDay: 15,          // 6ヶ月目の補助KPI「平日昼の稼働率15%」
+  occWeekdayNight: 35,
+  occHoliday: 50,
+  feeRate: 30,
+  cleaningCost: 2000,
+  avgHoursPerBooking: 4.7,
+};
+
+// concept.md 3-3 の撤退基準と 3-2 の目標(稼働率は 0〜1)
+const THRESHOLDS = {
+  m3Target: 0.20,
+  m6Yellow: 0.20,
+  m6Target: 0.30,
+  afterReviewExit: 0.25,
+  m12Exit: 0.30,
+  m12Pass: 0.40,
+  m12Goal: 0.45,
+  upside: 0.50,
+  cashLineMonths: 3,
+  paybackTargetMonths: 24,
+};
+
+function clamp(x, lo, hi) {
+  return Math.min(hi, Math.max(lo, x));
+}
+
+// 時間帯ごとの月間の営業時間(容量)
+function slotCapacity(p) {
+  const open = clamp(p.openHour, 0, 24);
+  const close = clamp(p.closeHour, open, 24);
+  const hoursPerDay = close - open;
+  const night = clamp(p.nightStartHour, open, close);
+  const days = Math.max(0, p.daysPerMonth);
+  const holidayDays = clamp(p.holidayDays, 0, days);
+  const weekdays = days - holidayDays;
+  return {
+    hoursPerDay,
+    weekdayDay: weekdays * (night - open),
+    weekdayNight: weekdays * (close - night),
+    holiday: holidayDays * hoursPerDay,
+    total: days * hoursPerDay,
+  };
+}
+
+// 固定の入力値で1ヶ月の収支を出す。稼働率・手数料率は % で受け取る
+function monthlyResult(p) {
+  const cap = slotCapacity(p);
+  const slots = [
+    { key: "weekdayDay", capacity: cap.weekdayDay, price: p.priceWeekdayDay, occ: clamp(p.occWeekdayDay, 0, 100) / 100 },
+    { key: "weekdayNight", capacity: cap.weekdayNight, price: p.priceWeekdayNight, occ: clamp(p.occWeekdayNight, 0, 100) / 100 },
+    { key: "holiday", capacity: cap.holiday, price: p.priceHoliday, occ: clamp(p.occHoliday, 0, 100) / 100 },
+  ].map((s) => ({ ...s, hours: s.capacity * s.occ, revenue: s.capacity * s.occ * s.price }));
+
+  const hours = slots.reduce((a, s) => a + s.hours, 0);
+  const revenue = slots.reduce((a, s) => a + s.revenue, 0);
+  const feeRate = clamp(p.feeRate, 0, 100) / 100;
+  const bookings = p.avgHoursPerBooking > 0 ? hours / p.avgHoursPerBooking : 0;
+  const fee = revenue * feeRate;
+  const cleaning = bookings * p.cleaningCost;
+  const fixed = p.rent + p.otherFixed;
+  const profit = revenue - fee - cleaning - fixed;
+
+  return {
+    capacity: cap,
+    slots,
+    hours,
+    occupancy: cap.total > 0 ? hours / cap.total : 0,
+    avgPrice: hours > 0 ? revenue / hours : 0,
+    bookings,
+    revenue,
+    fee,
+    cleaning,
+    fixed,
+    profit,
+  };
+}
+
+// 予約1時間あたりの貢献利益(手取り単価 − 1時間あたり清掃費)。
+// 平均単価は今の時間帯の比率で決まる。予約が0なら営業時間の比率で重み付けする
+function contributionPerHour(p) {
+  const r = monthlyResult(p);
+  let avgPrice = r.avgPrice;
+  if (r.hours === 0) {
+    const cap = r.capacity;
+    avgPrice = cap.total > 0
+      ? (cap.weekdayDay * p.priceWeekdayDay + cap.weekdayNight * p.priceWeekdayNight + cap.holiday * p.priceHoliday) / cap.total
+      : 0;
+  }
+  const feeRate = clamp(p.feeRate, 0, 100) / 100;
+  const cleaningPerHour = p.avgHoursPerBooking > 0 ? p.cleaningCost / p.avgHoursPerBooking : 0;
+  return avgPrice * (1 - feeRate) - cleaningPerHour;
+}
+
+// 月利益が targetProfit になる全体稼働率(0〜1、100%超もそのまま返す)。達成不能なら Infinity
+function occupancyForProfit(p, targetProfit) {
+  const c = contributionPerHour(p);
+  const cap = slotCapacity(p);
+  if (c <= 0 || cap.total <= 0) return Infinity;
+  return (p.rent + p.otherFixed + targetProfit) / c / cap.total;
+}
+
+function breakEvenOccupancy(p) {
+  return occupancyForProfit(p, 0);
+}
+
+// 初期投資を months ヶ月で回収するのに必要な稼働率
+function occupancyForPayback(p, months) {
+  return occupancyForProfit(p, p.initialInvestment / months);
+}
+
+// 投資回収月数。赤字・0円なら Infinity
+function paybackMonths(initialInvestment, monthlyProfit) {
+  if (monthlyProfit <= 0) return Infinity;
+  return initialInvestment / monthlyProfit;
+}
+
+// 全体の稼働率を scale 倍したときの入力(時間帯の比率は維持、各枠は100%で頭打ち)
+function scaleOccupancy(p, targetOccupancy) {
+  const base = monthlyResult(p).occupancy;
+  if (base === 0) {
+    return { ...p, occWeekdayDay: targetOccupancy * 100, occWeekdayNight: targetOccupancy * 100, occHoliday: targetOccupancy * 100 };
+  }
+  const k = targetOccupancy / base;
+  return {
+    ...p,
+    occWeekdayDay: clamp(p.occWeekdayDay * k, 0, 100),
+    occWeekdayNight: clamp(p.occWeekdayNight * k, 0, 100),
+    occHoliday: clamp(p.occHoliday * k, 0, 100),
+  };
+}
+
+// 赤字が続いたとき、運転資金が「固定費3ヶ月分」を割るまでの月数。黒字なら Infinity
+function monthsToCashLine(workingCapital, monthlyFixed, monthlyProfit) {
+  const line = monthlyFixed * THRESHOLDS.cashLineMonths;
+  if (workingCapital < line) return 0;
+  if (monthlyProfit >= 0) return Infinity;
+  return (workingCapital - line) / -monthlyProfit;
+}
+
+// 12ヶ月時点の総合判定
+function judge12Months(occupancy) {
+  const t = THRESHOLDS;
+  if (occupancy < t.m12Exit) return { status: "ng", label: "撤退", detail: "12ヶ月時点で稼働率30%未満。解約予告を出す水準" };
+  if (occupancy < t.m12Pass) return { status: "warn", label: "継続(合格未満)", detail: "撤退ラインは超えるが、合格ライン40%に届かない" };
+  if (occupancy < t.m12Goal) return { status: "ok", label: "合格", detail: "12ヶ月の合格ライン40%以上" };
+  if (occupancy <= t.upside) return { status: "ok", label: "目標達成", detail: "12ヶ月の目標45%以上(2年回収ペース)" };
+  return { status: "ok", label: "上振れ", detail: "50%超。3ヶ月連続なら2室目の検討を始める" };
+}
+
+// 各時点の基準との照合一覧
+function exitChecks(p) {
+  const r = monthlyResult(p);
+  const t = THRESHOLDS;
+  const o = r.occupancy;
+  const cashMonths = monthsToCashLine(p.workingCapital, r.fixed, r.profit);
+  const st = (ok, warn) => (ok ? "ok" : warn ? "warn" : "ng");
+  return [
+    { when: "3ヶ月", rule: "稼働率20%(目標)", status: st(o >= t.m3Target, true) },
+    { when: "6ヶ月", rule: "稼働率20%未満なら黄信号(見直し)", status: o < t.m6Yellow ? "warn" : "ok" },
+    { when: "6ヶ月", rule: "稼働率30%+単月黒字(目標)", status: st(o >= t.m6Target && r.profit >= 0, true) },
+    { when: "見直し2回後", rule: "稼働率25%未満なら撤退", status: o < t.afterReviewExit ? "ng" : "ok" },
+    { when: "12ヶ月", rule: "稼働率30%未満なら撤退", status: o < t.m12Exit ? "ng" : "ok" },
+    { when: "12ヶ月", rule: "稼働率40%で合格、45%で目標", status: o >= t.m12Goal ? "ok" : o >= t.m12Pass ? "ok" : "warn" },
+    { when: "随時", rule: "運転資金が固定費3ヶ月分を割ったら撤退か縮小", status: cashMonths === Infinity ? "ok" : cashMonths === 0 ? "ng" : "warn", cashMonths },
+  ];
+}
+</script>
+
+<!-- 画面(入力の読み取りと描画) -->
+<script>
+(function () {
+  const STORAGE_KEY = "rental-space-simulator:inputs";
+  const keys = Object.keys(DEFAULTS);
+  const $ = (id) => document.getElementById(id);
+  const yen = (n) => (Number.isFinite(n) ? Math.round(n).toLocaleString("ja-JP") + "円" : "—");
+  const man = (n) => (Number.isFinite(n) ? (n / 10000).toLocaleString("ja-JP", { maximumFractionDigits: 1 }) + "万円" : "—");
+  const pct = (x) => (Number.isFinite(x) ? (x * 100).toFixed(1) + "%" : "達成不能");
+  const signYen = (n) => (n >= 0 ? "+" : "−") + Math.abs(Math.round(n)).toLocaleString("ja-JP") + "円";
+  const STATUS_LABEL = { ok: "クリア", warn: "注意", ng: "未達" };
+
+  function loadSaved() {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  function save(p) {
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(p)); } catch (e) { /* 保存できなくても動作は続ける */ }
+  }
+
+  function fill(values) {
+    keys.forEach((k) => { $(k).value = values[k]; });
+  }
+  function read() {
+    const p = {};
+    keys.forEach((k) => {
+      const v = parseFloat($(k).value);
+      p[k] = Number.isFinite(v) ? v : DEFAULTS[k];
+    });
+    return p;
+  }
+
+  function kpi(label, value, sub, cls) {
+    return `<div class="kpi"><div class="k">${label}</div><div class="v ${cls || ""}">${value}</div><div class="s">${sub || ""}</div></div>`;
+  }
+
+  function render() {
+    const p = read();
+    save(p);
+    const r = monthlyResult(p);
+    const cap = r.capacity;
+    const be = breakEvenOccupancy(p);
+    const pb = paybackMonths(p.initialInvestment, r.profit);
+    const need24 = occupancyForPayback(p, THRESHOLDS.paybackTargetMonths);
+
+    const open = clamp(p.openHour, 0, 24), close = clamp(p.closeHour, open, 24), night = clamp(p.nightStartHour, open, close);
+    $("lbl-weekdayDay").textContent = `平日昼(${open}〜${night}時・月${Math.round(cap.weekdayDay)}時間)`;
+    $("lbl-weekdayNight").textContent = `平日夜(${night}〜${close}時・月${Math.round(cap.weekdayNight)}時間)`;
+    $("lbl-holiday").textContent = `休日(${open}〜${close}時・月${Math.round(cap.holiday)}時間)`;
+
+    $("kpis").innerHTML =
+      kpi("月売上", yen(r.revenue), `予約 ${r.hours.toFixed(0)}時間 / 約${r.bookings.toFixed(1)}件`) +
+      kpi("月利益", signYen(r.profit), `年間 ${man(r.profit * 12)}`, r.profit >= 0 ? "pos" : "neg") +
+      kpi("全体の稼働率", pct(r.occupancy), `営業 月${cap.total}時間中`) +
+      kpi("損益分岐稼働率", pct(be), Number.isFinite(be) ? `月${(be * cap.total).toFixed(0)}時間` : "単価が清掃費・手数料を下回る") +
+      kpi("投資回収月数", Number.isFinite(pb) ? pb.toFixed(1) + "ヶ月" : "回収不可", `初期投資 ${man(p.initialInvestment)}`, Number.isFinite(pb) ? "" : "neg") +
+      kpi("2年回収に必要な稼働率", pct(need24), `平均単価 ${yen(r.avgPrice)}/時(目標2,400円)`);
+
+    const v = judge12Months(r.occupancy);
+    $("verdict").innerHTML = `<div class="verdict st-${v.status}">12ヶ月時点なら:${v.label}(稼働率 ${pct(r.occupancy)})<small>${v.detail}</small></div>`;
+
+    const checks = exitChecks(p);
+    $("checks").innerHTML = "<tr><th>時点</th><th>基準</th><th>判定</th></tr>" + checks.map((c) => {
+      let label = STATUS_LABEL[c.status];
+      if (c.cashMonths !== undefined) {
+        label = c.cashMonths === Infinity ? "黒字のため減らない" : c.cashMonths === 0 ? "すでに下回る" : `約${c.cashMonths.toFixed(1)}ヶ月で到達`;
+      }
+      return `<tr><td>${c.when}</td><td>${c.rule}</td><td><span class="badge st-${c.status}">${label}</span></td></tr>`;
+    }).join("");
+
+    const names = { weekdayDay: "平日昼", weekdayNight: "平日夜", holiday: "休日" };
+    $("breakdown").innerHTML =
+      '<tr><th>項目</th><th class="num">時間</th><th class="num">金額</th></tr>' +
+      r.slots.map((s) => `<tr><td>売上:${names[s.key]}(${yen(s.price)}/時 × ${(s.occ * 100).toFixed(0)}%)</td><td class="num">${s.hours.toFixed(1)}</td><td class="num">${yen(s.revenue)}</td></tr>`).join("") +
+      `<tr><td>ポータル手数料(${p.feeRate}%)</td><td></td><td class="num neg">−${yen(r.fee)}</td></tr>` +
+      `<tr><td>清掃費(${r.bookings.toFixed(1)}件 × ${yen(p.cleaningCost)})</td><td></td><td class="num neg">−${yen(r.cleaning)}</td></tr>` +
+      `<tr><td>固定費(家賃 ${yen(p.rent)} + その他 ${yen(p.otherFixed)})</td><td></td><td class="num neg">−${yen(r.fixed)}</td></tr>` +
+      `<tr><td><strong>月利益</strong></td><td class="num">${r.hours.toFixed(1)}</td><td class="num ${r.profit >= 0 ? "pos" : "neg"}"><strong>${signYen(r.profit)}</strong></td></tr>`;
+
+    const levels = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.6];
+    const nearest = levels.reduce((a, b) => (Math.abs(b - r.occupancy) < Math.abs(a - r.occupancy) ? b : a));
+    $("sensitivity").innerHTML =
+      '<tr><th class="num">稼働率</th><th class="num">月売上</th><th class="num">月利益</th><th class="num">回収月数</th><th>12ヶ月判定</th></tr>' +
+      levels.map((lv) => {
+        const q = scaleOccupancy(p, lv);
+        const s = monthlyResult(q);
+        const m = paybackMonths(p.initialInvestment, s.profit);
+        const j = judge12Months(s.occupancy);
+        return `<tr class="${lv === nearest ? "current" : ""}"><td class="num">${pct(s.occupancy)}</td><td class="num">${yen(s.revenue)}</td><td class="num ${s.profit >= 0 ? "pos" : "neg"}">${signYen(s.profit)}</td><td class="num">${Number.isFinite(m) ? m.toFixed(1) + "ヶ月" : "—"}</td><td><span class="badge st-${j.status}">${j.label}</span></td></tr>`;
+      }).join("");
+  }
+
+  const saved = loadSaved();
+  fill(saved ? { ...DEFAULTS, ...saved } : DEFAULTS);
+  $("form").addEventListener("input", render);
+  $("reset").addEventListener("click", () => { fill(DEFAULTS); render(); });
+  render();
+})();
+</script>
+</body>
+</html>
