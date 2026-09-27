@@ -1,44 +1,32 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Noto_Sans_JP } from "next/font/google";
 import Link from "next/link";
 import Script from "next/script";
 import { adsenseClient, gaId, siteUrl } from "@/lib/monetization";
+import { siteDescription, siteName, siteTagline } from "@/lib/site";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const notoSansJp = Noto_Sans_JP({
+  variable: "--font-noto-sans-jp",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {
   metadataBase: new URL(`${siteUrl}/`),
   title: {
-    default: "Javabronze — Java Bronze 無料練習問題クイズ",
-    template: "%s | Javabronze",
+    default: `${siteName} — ${siteTagline}`,
+    template: `%s | ${siteName}`,
   },
-  description:
-    "Java Bronze（Oracle認定Javaブロンズ）対策の無料4択クイズ。解説付きで、スキマ時間にJavaの基礎を身につけよう。問題は毎週追加。",
-  keywords: ["Java Bronze", "Javaブロンズ", "Java 練習問題", "Java 資格", "Java 入門", "Java クイズ"],
-  openGraph: {
-    type: "website",
-    locale: "ja_JP",
-    siteName: "Javabronze",
-  },
+  description: siteDescription,
+  openGraph: { type: "website", locale: "ja_JP", siteName },
   twitter: { card: "summary" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="ja"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
+    <html lang="ja" className={`${notoSansJp.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col font-sans">
         {adsenseClient && (
           <Script
             async
@@ -58,23 +46,21 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Script>
           </>
         )}
-        <header className="border-b border-bronze-light">
-          <div className="mx-auto max-w-4xl px-6 py-4 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-              <span aria-hidden="true">☕</span>
-              <span>
-                Java<span className="text-bronze-dark">bronze</span>
-              </span>
+        <header className="border-b border-line">
+          <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
+            <Link href="/" className="text-lg font-bold">
+              🖥️ {siteName}
             </Link>
-            <span className="text-sm opacity-70">初心者向けJavaクイズ</span>
+            <span className="hidden text-sm opacity-70 sm:inline">{siteTagline}</span>
           </div>
         </header>
-        <main className="flex-1 mx-auto w-full max-w-4xl px-6 py-8">{children}</main>
-        <footer className="border-t border-bronze-light">
-          <div className="mx-auto max-w-4xl px-6 py-4 text-sm opacity-60">
-            練習して、失敗して、また挑戦する。それがブロンズをシルバーに変える道。
-            <span className="mt-1 block text-xs">
-              当サイトは広告・アフィリエイトプログラムを利用しています。
+        <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-8">{children}</main>
+        <footer className="border-t border-line">
+          <div className="mx-auto flex max-w-3xl flex-wrap gap-x-5 gap-y-2 px-4 py-5 text-sm opacity-70">
+            <Link href="/about/" className="hover:underline">運営者情報・運営方針</Link>
+            <Link href="/privacy/" className="hover:underline">プライバシーポリシー</Link>
+            <span className="w-full text-xs">
+              当サイトは楽天アフィリエイト・Amazonアソシエイト等のアフィリエイトプログラムを利用しています。
             </span>
           </div>
         </footer>

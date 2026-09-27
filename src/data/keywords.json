@@ -1,0 +1,112 @@
+{
+  "queue": [
+    {
+      "keyword": "ノートパソコンスタンド",
+      "slug": "laptop-stand",
+      "category": "モニター周り",
+      "attempts": 0
+    },
+    {
+      "keyword": "モバイルモニター",
+      "slug": "mobile-monitor",
+      "category": "モニター周り",
+      "attempts": 0
+    },
+    {
+      "keyword": "モニターライト",
+      "slug": "monitor-light",
+      "category": "モニター周り",
+      "attempts": 0
+    },
+    {
+      "keyword": "静音 キーボード ワイヤレス",
+      "slug": "silent-keyboard",
+      "category": "入力デバイス",
+      "attempts": 0
+    },
+    {
+      "keyword": "トラックボール マウス",
+      "slug": "trackball-mouse",
+      "category": "入力デバイス",
+      "attempts": 0
+    },
+    {
+      "keyword": "リストレスト",
+      "slug": "wrist-rest",
+      "category": "入力デバイス",
+      "attempts": 0
+    },
+    {
+      "keyword": "Web会議 マイク USB",
+      "slug": "usb-microphone",
+      "category": "Web会議",
+      "attempts": 0
+    },
+    {
+      "keyword": "ノイズキャンセリング ヘッドセット",
+      "slug": "nc-headset",
+      "category": "Web会議",
+      "attempts": 0
+    },
+    {
+      "keyword": "リングライト",
+      "slug": "ring-light",
+      "category": "Web会議",
+      "attempts": 0
+    },
+    {
+      "keyword": "ケーブルトレー デスク",
+      "slug": "cable-tray",
+      "category": "配線・電源",
+      "attempts": 0
+    },
+    {
+      "keyword": "電源タップ USB付き",
+      "slug": "power-strip-usb",
+      "category": "配線・電源",
+      "attempts": 0
+    },
+    {
+      "keyword": "USB 充電器 GaN",
+      "slug": "gan-charger",
+      "category": "配線・電源",
+      "attempts": 0
+    },
+    {
+      "keyword": "フットレスト",
+      "slug": "footrest",
+      "category": "快適グッズ",
+      "attempts": 0
+    },
+    {
+      "keyword": "デスクマット",
+      "slug": "desk-mat",
+      "category": "快適グッズ",
+      "attempts": 0
+    },
+    {
+      "keyword": "卓上 加湿器",
+      "slug": "desk-humidifier",
+      "category": "快適グッズ",
+      "attempts": 0
+    },
+    {
+      "keyword": "クッション 腰痛 椅子",
+      "slug": "lumbar-cushion",
+      "category": "チェア・デスク",
+      "attempts": 0
+    },
+    {
+      "keyword": "チェアマット",
+      "slug": "chair-mat",
+      "category": "チェア・デスク",
+      "attempts": 0
+    },
+    {
+      "keyword": "27インチ 4K モニター",
+      "slug": "monitor-27-4k",
+      "category": "モニター周り",
+      "attempts": 0
+    }
+  ]
+}

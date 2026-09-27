@@ -1,14 +1,15 @@
-name: 週次コンテンツボット
+name: コンテンツ自動更新ボット
 
-# 毎週月曜 6:07（日本時間）: Claude が新しい問題を作り、別の Claude が答えを見ずに解き直す。
-# 答えが一致した問題だけを残し、チェック・ビルド・コミットして再デプロイする。
+# 毎日 6:07（日本時間）: 掲載商品の価格・レビューを楽天市場APIで最新化する。
+# 月曜・木曜はさらに、Claude が楽天の実データをもとに新しい比較記事を書き、別の Claude が事実確認する。
+# 変更があればチェック・ビルド・コミットして再デプロイする。
 on:
   schedule:
-    - cron: "7 21 * * 0"
+    - cron: "7 21 * * *"
   workflow_dispatch:
     inputs:
-      questions_per_topic:
-        description: "1トピックあたりの新規問題数"
+      guides_per_run:
+        description: "作成する記事数（0 なら価格更新のみ）"
         default: "3"
 
 permissions:
@@ -21,10 +22,16 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  generate:
+  update:
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.commit.outputs.changed }}
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      RAKUTEN_APPLICATION_ID: ${{ secrets.RAKUTEN_APPLICATION_ID }}
+      RAKUTEN_ACCESS_KEY: ${{ secrets.RAKUTEN_ACCESS_KEY }}
+      NEXT_PUBLIC_RAKUTEN_AFFILIATE_ID: ${{ vars.NEXT_PUBLIC_RAKUTEN_AFFILIATE_ID }}
+      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -32,34 +39,34 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: 問題を生成
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          QUESTIONS_PER_TOPIC: ${{ inputs.questions_per_topic || '3' }}
+      - name: 価格・レビューを更新
+        run: npm run update-prices
+      - name: 新しい記事を作成
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::warning::Secret の ANTHROPIC_API_KEY が未設定のため、問題生成をスキップしました。"
+          # cron 実行は日本時間の月曜・木曜のみ（UTC では日曜・水曜の 21:07）
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "$(date -u +%u)" != "7" ] && [ "$(date -u +%u)" != "3" ]; then
+            echo "今日は記事作成日ではありません。"
             exit 0
           fi
-          npm run generate
+          GUIDES_PER_RUN="${{ inputs.guides_per_run || '3' }}" npm run generate
       - run: npm run validate
       - run: npm run build
       - id: commit
-        name: 新しい問題をコミット
+        name: 変更をコミット
         run: |
-          if git diff --quiet -- src/data/topics; then
+          if git diff --quiet -- src/data && [ -z "$(git ls-files --others --exclude-standard src/data)" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git config user.name "javabronze-content-bot"
+          git config user.name "desk-lab-content-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/data/topics
-          git commit -m "コンテンツ: 今週の Java Bronze 問題を追加"
+          git add src/data
+          git commit -m "コンテンツ: 記事と商品データを自動更新"
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
   # GITHUB_TOKEN による push では他のワークフローが起動しないため、明示的に再デプロイする。
   deploy:
-    needs: generate
-    if: needs.generate.outputs.changed == 'true'
+    needs: update
+    if: needs.update.outputs.changed == 'true'
     uses: ./.github/workflows/deploy.yml
