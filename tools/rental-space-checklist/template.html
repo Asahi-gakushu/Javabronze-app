@@ -1,0 +1,357 @@
+<title>推しと晩酌 開業ロードマップ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#F5F1EA; --surface:#FFFDF8; --sunk:#EDE7DC; --ink:#1F2A44; --muted:#5D6478; --faint:#8A8F9E;
+  --line:#E2DACB; --accent:#E0A33A; --accent-ink:#8A5A08; --accent-soft:#F7E6C4;
+  --pA:#2F4A7A; --pB:#B4553A; --pC:#9A6A0E; --pAI:#5D6478;
+  --pA-soft:#E3E9F4; --pB-soft:#F6E2DA; --pC-soft:#F4EAD2; --pAI-soft:#E8E8EC;
+  --done:#357A52; --late:#B83A2E; --late-soft:#F7DEDA; --focus:#2F6FDB;
+  --display:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Noto Sans JP",sans-serif;
+  --body:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  color-scheme:dark;
+  --bg:#131826; --surface:#1B2233; --sunk:#232C40; --ink:#ECE6DA; --muted:#A6ACBB; --faint:#7E8496;
+  --line:#2E3850; --accent:#E8B04E; --accent-ink:#F2C774; --accent-soft:#3A3120;
+  --pA:#9DB4E4; --pB:#E9927A; --pC:#E6BD5E; --pAI:#A6ACBB;
+  --pA-soft:#243252; --pB-soft:#3D2721; --pC-soft:#3A3120; --pAI-soft:#2A3142;
+  --done:#6CC08E; --late:#F08A7E; --late-soft:#3E2220; --focus:#7FA8F5;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#131826; --surface:#1B2233; --sunk:#232C40; --ink:#ECE6DA; --muted:#A6ACBB; --faint:#7E8496;
+  --line:#2E3850; --accent:#E8B04E; --accent-ink:#F2C774; --accent-soft:#3A3120;
+  --pA:#9DB4E4; --pB:#E9927A; --pC:#E6BD5E; --pAI:#A6ACBB;
+  --pA-soft:#243252; --pB-soft:#3D2721; --pC-soft:#3A3120; --pAI-soft:#2A3142;
+  --done:#6CC08E; --late:#F08A7E; --late-soft:#3E2220; --focus:#7FA8F5;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.65}
+.wrap{max-width:1040px;margin:0 auto;padding:28px 16px 64px;display:grid;gap:28px}
+h1,h2,h3{font-family:var(--display);font-weight:700;text-wrap:balance;margin:0;line-height:1.3}
+h1{font-size:clamp(26px,5vw,36px)}
+h2{font-size:20px}
+h3{font-size:16px}
+.eyebrow{font-size:12px;letter-spacing:.12em;color:var(--muted);font-weight:500}
+.num{font-variant-numeric:tabular-nums}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* header */
+.head{display:grid;gap:10px}
+.countdown{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;color:var(--muted)}
+.countdown strong{font-family:var(--display);font-size:22px;color:var(--ink)}
+.dday{background:var(--accent-soft);color:var(--accent-ink);border-radius:999px;padding:2px 12px;font-weight:700}
+.sync{font-size:12px;color:var(--faint)}
+
+/* team */
+.team{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.member{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:10px;align-content:start;border-top:4px solid var(--c)}
+.member .top{display:flex;align-items:center;gap:10px}
+.badge{flex:none;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:var(--c);color:var(--surface);font-family:var(--display);font-weight:700}
+.member input{border:1px solid transparent;background:transparent;border-radius:6px;padding:2px 6px;font-weight:700;width:100%;min-width:0}
+.member input:hover{border-color:var(--line)}
+.member input:focus{border-color:var(--c);background:var(--bg);outline:none}
+.role{font-size:13px;color:var(--muted);margin:0}
+.meter{height:8px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.meter span{display:block;height:100%;background:var(--c);border-radius:99px;transition:width .3s}
+.meter-row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+.next{background:var(--bg);border-radius:8px;padding:10px 12px;font-size:13.5px;display:grid;gap:2px}
+.next b{font-size:11px;letter-spacing:.1em;color:var(--c)}
+.next .due{color:var(--muted);font-size:12px}
+.next.done-all{color:var(--done)}
+
+/* phase strip */
+.strip-wrap{overflow-x:auto}
+.strip{display:grid;grid-template-columns:repeat(7,minmax(112px,1fr));gap:4px;min-width:780px}
+.ph{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px;display:grid;gap:4px}
+.ph .t{font-weight:700;font-size:13px}
+.ph .d{color:var(--muted)}
+.ph .bar{height:4px;background:var(--sunk);border-radius:9px;overflow:hidden}
+.ph .bar span{display:block;height:100%;background:var(--accent)}
+.ph.now{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent);background:var(--accent-soft)}
+.ph.now .t::before{content:"いまここ";display:block;color:var(--accent-ink);font-size:11px;letter-spacing:.08em}
+
+/* controls */
+.controls{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;border-bottom:1px solid var(--line)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:4px 12px;cursor:pointer;font-size:13.5px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.toggle{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted);cursor:pointer}
+
+/* sections */
+section{display:grid;gap:12px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:4px 12px}
+.sec-head .meta{font-size:13px;color:var(--muted)}
+.side{font-size:12px;color:var(--accent-ink);background:var(--accent-soft);border-radius:4px;padding:1px 8px;margin-left:6px;font-family:var(--body);font-weight:500}
+.list{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.empty{padding:16px;color:var(--muted);font-size:14px}
+
+.task{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;padding:12px 14px;border-top:1px solid var(--line)}
+.task:first-child{border-top:none}
+.task input[type=checkbox]{width:20px;height:20px;margin:2px 0 0;accent-color:var(--done);cursor:pointer}
+.task label{cursor:pointer;display:block}
+.task .tid{font-size:11.5px;color:var(--faint);margin-right:6px}
+.task .meta{grid-column:2;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12.5px;color:var(--muted)}
+.task.is-done label{color:var(--faint);text-decoration:line-through;text-decoration-color:var(--faint)}
+.task.is-done .meta{opacity:.7}
+.who{border-radius:4px;padding:0 7px;font-weight:700;font-size:12px}
+.who.A{background:var(--pA-soft);color:var(--pA)}
+.who.B{background:var(--pB-soft);color:var(--pB)}
+.who.C{background:var(--pC-soft);color:var(--pC)}
+.who.AI{background:var(--pAI-soft);color:var(--pAI)}
+.kind{border:1px solid var(--line);border-radius:4px;padding:0 6px;font-size:11.5px}
+.late{color:var(--late);font-weight:700}
+.late-tag{background:var(--late-soft);color:var(--late);border-radius:4px;padding:0 6px;font-weight:700;font-size:11.5px}
+.donemark{color:var(--done);font-weight:500}
+.owner-note{color:var(--faint)}
+
+/* weeks */
+details.weeks{background:var(--surface);border:1px solid var(--line);border-radius:12px}
+details.weeks summary{cursor:pointer;padding:14px 16px;font-family:var(--display);font-weight:700;font-size:16px}
+.table-wrap{overflow-x:auto;border-top:1px solid var(--line)}
+table{border-collapse:collapse;min-width:900px;width:100%;font-size:13px}
+th,td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+th{font-size:12px;color:var(--muted);font-weight:500;background:var(--sunk);position:sticky;top:0}
+td.wk{white-space:nowrap;font-weight:700}
+tr.this-week td{background:var(--accent-soft)}
+td.ms{color:var(--accent-ink);font-weight:500}
+.foot{font-size:12.5px;color:var(--faint);display:grid;gap:4px}
+@media (max-width:520px){.wrap{gap:22px}.task{padding:12px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="head">
+    <div class="eyebrow">レンタルスペース「推しと晩酌」(仮)開業準備 ・ 3人用</div>
+    <h1>開業ロードマップ</h1>
+    <div class="countdown">
+      <span>開業目標 <strong class="num">2027年3月13日(土)</strong></span>
+      <span class="dday num" id="dday"></span>
+      <span class="num" id="overall"></span>
+    </div>
+    <div class="sync" id="sync">チェックの保存先に接続しています…</div>
+  </header>
+
+  <div class="team" id="team"></div>
+
+  <section aria-labelledby="h-phase">
+    <div class="sec-head"><h2 id="h-phase">フェーズ</h2><span class="meta">物件の申込日がずれたら、以降は「申込+8週=入居、入居+6週=開業」でずれます</span></div>
+    <div class="strip-wrap"><div class="strip" id="strip"></div></div>
+  </section>
+
+  <div class="controls" role="group" aria-label="表示の絞り込み">
+    <div class="seg" id="filters"></div>
+    <label class="toggle"><input type="checkbox" id="hideDone"> 完了したものを隠す</label>
+  </div>
+
+  <section aria-labelledby="h-week">
+    <div class="sec-head"><h2 id="h-week">今週やること</h2><span class="meta" id="weekmeta"></span></div>
+    <div class="list" id="thisweek"></div>
+  </section>
+
+  <div id="phases" style="display:grid;gap:28px"></div>
+
+  <details class="weeks" id="weeks">
+    <summary>週ごとの予定表(W1〜W37)</summary>
+    <div class="table-wrap"><table>
+      <thead><tr><th>週</th><th>期間</th><th>A(代表)</th><th>B(物件・内装・運営)</th><th>C(集客・ブランド)</th><th>3人で一緒に</th><th>締切・節目</th></tr></thead>
+      <tbody id="weekrows"></tbody>
+    </table></div>
+  </details>
+
+  <footer class="foot">
+    <span>元の資料:docs/rental-space/roadmap-3people.md(ai-secretary 作成 2026-09-27)。タスクを直すときはその資料を直してからページを作り直します。</span>
+    <span>契約・支払い・送信・公開は必ず人(A/B/C)が行います。「AIに任せる」は下調べと下書きまでです。</span>
+  </footer>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const D_DAY = "2027-03-13";
+const PEOPLE = {
+  A:{label:"A", role:"代表:お金・意思決定・契約と届出・大家との交渉", c:"var(--pA)"},
+  B:{label:"B", role:"物件・内装・運営:内見、中古家具の調達、DIY、清掃・鍵", c:"var(--pB)"},
+  C:{label:"C", role:"集客・ブランド:名前と商標、SNS、写真、掲載文", c:"var(--pC)"},
+};
+const KINDS = {solo:"個人でできる", together:"3人で集まる", outside:"外部とやりとり", ai:"AIに任せる"};
+const FILTERS = [["all","全員"],["A","A"],["B","B"],["C","C"],["together","3人で集まる"],["AI","AI社員"]];
+
+const state = {checks:{}, names:{A:"",B:"",C:""}, filter:"all", hideDone:false, db:null, dbReady:false};
+try{ const f = localStorage.getItem("rs-filter"); if(f) state.filter = f; state.hideDone = localStorage.getItem("rs-hide")==="1"; }catch(e){}
+
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const md = s => esc(s).replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>");
+function today(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+function toDate(iso){ const [y,m,d]=iso.split("-").map(Number); return new Date(y,m-1,d); }
+function days(a,b){ return Math.round((b-a)/86400000); }
+const nameOf = p => state.names[p] ? `${p}(${state.names[p]})` : p;
+const isDone = t => !!(state.checks[t.id] && state.checks[t.id].done);
+const isLate = t => t.due && !isDone(t) && toDate(t.due) < today();
+
+function matches(t){
+  const f = state.filter;
+  if(f==="all") return true;
+  if(f==="together") return t.kinds.includes("together");
+  return t.who.includes(f);
+}
+const byDue = (a,b) => (a.due||"9999").localeCompare(b.due||"9999") || a.id.localeCompare(b.id);
+
+function taskRow(t, where){
+  const done = isDone(t), c = state.checks[t.id];
+  const who = t.who.map(p=>`<span class="who ${p}">${p==="AI"?"AI社員":esc(nameOf(p))}</span>`).join("");
+  const kinds = t.kinds.map(k=>`<span class="kind">${KINDS[k]}</span>`).join("");
+  const due = t.dueText ? `<span class="num ${isLate(t)?"late":""}">期限 ${esc(t.dueText)}</span>` : "";
+  const late = isLate(t) ? `<span class="late-tag">期限切れ</span>` : "";
+  const deps = t.deps ? `<span>前提 ${esc(t.deps)}</span>` : "";
+  const time = t.time ? `<span>目安 ${esc(t.time)}</span>` : "";
+  const doneAt = done && c.at ? `<span class="donemark num">✓ ${new Date(c.at).toLocaleDateString("ja-JP",{month:"numeric",day:"numeric"})} 完了</span>` : "";
+  const note = /[→(]|ai-/.test(t.owner) ? `<span class="owner-note">担当:${esc(t.owner)}</span>` : "";
+  return `<div class="task ${done?"is-done":""}">
+    <input type="checkbox" id="cb-${where}-${t.id}" data-id="${t.id}" ${done?"checked":""}>
+    <label for="cb-${where}-${t.id}"><span class="tid num">${t.id}</span>${esc(t.text)}</label>
+    <div class="meta">${who}${kinds}${due}${late}${time}${deps}${note}${doneAt}</div>
+  </div>`;
+}
+function listHTML(tasks, where){
+  const shown = tasks.filter(t => matches(t) && !(state.hideDone && isDone(t)));
+  if(!shown.length) return `<div class="empty">この条件で表示するタスクはありません。</div>`;
+  return shown.map(t=>taskRow(t, where)).join("");
+}
+
+function render(){
+  const focusId = document.activeElement && document.activeElement.id;
+  const typing = focusId && focusId.startsWith("name-");
+  renderAll(typing);
+  if(focusId && !typing){ const el = document.getElementById(focusId); if(el) el.focus({preventScroll:true}); }
+}
+function renderAll(typing){
+  const T = DATA.tasks, now = today();
+  // header
+  const left = days(now, toDate(D_DAY));
+  document.getElementById("dday").textContent = left>0 ? `あと${left}日` : left===0 ? "今日が開業日" : `開業から${-left}日`;
+  const doneN = T.filter(isDone).length;
+  document.getElementById("overall").textContent = `全体 ${doneN}/${T.length} 完了`;
+
+  // team (left alone while someone is typing a name)
+  if(!typing) document.getElementById("team").innerHTML = Object.entries(PEOPLE).map(([p,info])=>{
+    const mine = T.filter(t=>t.who.includes(p));
+    const d = mine.filter(isDone).length;
+    const nxt = mine.filter(t=>!isDone(t)).sort(byDue)[0];
+    const pct = mine.length ? Math.round(d/mine.length*100) : 0;
+    return `<div class="member" style="--c:${info.c}">
+      <div class="top"><span class="badge">${p}</span>
+        <input id="name-${p}" data-name="${p}" value="${esc(state.names[p])}" placeholder="名前を入力" aria-label="${p} の名前" maxlength="20"></div>
+      <p class="role">${esc(info.role)}</p>
+      <div class="meter" role="img" aria-label="${d}/${mine.length} 完了"><span style="width:${pct}%"></span></div>
+      <div class="meter-row num"><span>${d}/${mine.length} 完了</span><span>${pct}%</span></div>
+      ${nxt ? `<div class="next"><b>次にやる1つ</b><span><span class="num" style="color:var(--faint)">${nxt.id}</span> ${esc(nxt.text)}</span><span class="due num ${isLate(nxt)?"late":""}">${nxt.dueText?"期限 "+esc(nxt.dueText):""}${nxt.time?" ・ 目安 "+esc(nxt.time):""}</span></div>`
+             : `<div class="next done-all">担当タスクはすべて完了です。</div>`}
+    </div>`;
+  }).join("");
+
+  // phase strip (main phases only)
+  const main = DATA.phases.filter(p=>/^F\d /.test(p.title+" ") && !/の間に/.test(p.title));
+  const cur = currentPhase(main, now);
+  document.getElementById("strip").innerHTML = main.map(p=>{
+    const ts = T.filter(t=>t.phase===p.key); const d = ts.filter(isDone).length;
+    return `<div class="ph ${p.key===cur?"now":""}"><span class="t">${esc(p.title)}</span><span class="d num">${esc(p.period)}</span>
+      <div class="bar"><span style="width:${ts.length?d/ts.length*100:0}%"></span></div><span class="d num">${d}/${ts.length}</span></div>`;
+  }).join("");
+
+  // filters
+  document.getElementById("filters").innerHTML = FILTERS.map(([k,l])=>
+    `<button class="chip" data-filter="${k}" aria-pressed="${state.filter===k}">${esc(k in PEOPLE && state.names[k] ? nameOf(k) : l)}</button>`).join("");
+  document.getElementById("hideDone").checked = state.hideDone;
+
+  // this week: undone, due within 7 days or overdue
+  const limit = new Date(now); limit.setDate(limit.getDate()+7);
+  const wk = T.filter(t=>t.due && !isDone(t) && toDate(t.due) <= limit).sort(byDue);
+  document.getElementById("weekmeta").textContent = `期限が${limit.getMonth()+1}/${limit.getDate()}までで未完了のもの(期限切れを含む)`;
+  document.getElementById("thisweek").innerHTML = listHTML(wk,"wk");
+
+  // phases
+  document.getElementById("phases").innerHTML = DATA.phases.map(p=>{
+    const ts = T.filter(t=>t.phase===p.key).sort(byDue);
+    const d = ts.filter(isDone).length;
+    const parallel = /の間に/.test(p.title);
+    return `<section aria-label="${esc(p.title)}">
+      <div class="sec-head"><h3>${esc(p.title)}${parallel?'<span class="side">並行作業</span>':""}</h3>
+        <span class="meta num">${esc(p.period)} ・ ${d}/${ts.length} 完了</span></div>
+      <div class="list">${listHTML(ts,p.key)}</div></section>`;
+  }).join("");
+
+  // weeks table
+  document.getElementById("weekrows").innerHTML = DATA.weeks.map((w,i)=>{
+    const start = w.start ? toDate(w.start) : null;
+    const nextStart = DATA.weeks[i+1] && DATA.weeks[i+1].start ? toDate(DATA.weeks[i+1].start) : null;
+    const isNow = start && now >= start && (!nextStart || now < nextStart);
+    const beforeFirst = i===0 && start && now < start && days(now,start) <= 7;
+    return `<tr class="${isNow||beforeFirst?"this-week":""}"><td class="wk num">${esc(w.week)}</td><td class="num">${esc(w.period)}</td>
+      <td>${md(w.A)}</td><td>${md(w.B)}</td><td>${md(w.C)}</td><td>${md(w.all)}</td><td class="ms">${md(w.milestone)}</td></tr>`;
+  }).join("");
+}
+function currentPhase(main, now){
+  let cur = main[0].key;
+  for(const p of main){
+    const m = p.period.match(/(\d{4})-(\d{2})-(\d{2})/);
+    if(m && new Date(+m[1],+m[2]-1,+m[3]) <= now) cur = p.key;
+  }
+  return cur;
+}
+
+// events
+document.addEventListener("change", async e=>{
+  const el = e.target;
+  if(el.matches('input[type=checkbox][data-id]')){
+    const id = el.dataset.id, val = el.checked;
+    state.checks[id] = val ? {done:true, at:new Date().toISOString()} : {done:false};
+    render();
+    if(state.db){
+      try{ await state.db.doc("checks/"+id).set(state.checks[id]); }
+      catch(err){ showSync(err && err.code==="invalid_argument" ? "この表示ではチェックを保存できません(閲覧のみ)" : "保存に失敗しました。もう一度チェックしてください"); }
+    } else saveLocal();
+  }
+  if(el.id==="hideDone"){ state.hideDone = el.checked; try{localStorage.setItem("rs-hide", el.checked?"1":"0")}catch(e){} render(); }
+  if(el.matches("input[data-name]")){
+    const p = el.dataset.name; state.names[p] = el.value.trim();
+    render();
+    if(state.db){ try{ await state.db.doc("team/names").set({...state.names}); }catch(err){ showSync("名前を保存できませんでした"); } }
+    else saveLocal();
+  }
+});
+document.addEventListener("click", e=>{
+  const b = e.target.closest("[data-filter]"); if(!b) return;
+  state.filter = b.dataset.filter; try{localStorage.setItem("rs-filter", state.filter)}catch(e){}
+  render();
+});
+function showSync(msg){ document.getElementById("sync").textContent = msg; }
+function saveLocal(){ try{ localStorage.setItem("rs-local", JSON.stringify({checks:state.checks, names:state.names})); }catch(e){} }
+function loadLocal(){ try{ const v = JSON.parse(localStorage.getItem("rs-local")||"null"); if(v){ state.checks=v.checks||{}; state.names={...state.names,...(v.names||{})}; } }catch(e){} }
+
+render();
+(async ()=>{
+  const db = window.claude && window.claude.use ? await window.claude.use("db").catch(()=>null) : null;
+  if(!db){
+    loadLocal(); render();
+    showSync("共有の保存先につながっていません。チェックはこの端末だけに残ります。");
+    return;
+  }
+  state.db = db;
+  showSync("チェックと名前は3人で共有されます。誰かが付けたチェックはすぐ全員の画面に出ます。");
+  db.collection("checks").onSnapshot(snap=>{
+    const next = {};
+    snap.docs.forEach(d=>{ const v=d.data(); if(v) next[d.id]={done:!!v.done, at:typeof v.at==="string"?v.at:null}; });
+    state.checks = next; render();
+  }, ()=> showSync("共有の保存先との接続が切れました。ページを開き直してください。"));
+  db.doc("team/names").onSnapshot(snap=>{
+    if(!snap.exists) return;
+    const v = snap.data()||{};
+    for(const p of ["A","B","C"]) if(typeof v[p]==="string" && document.activeElement?.id!=="name-"+p) state.names[p]=v[p].slice(0,20);
+    render();
+  }, ()=>{});
+})();
+</script>
