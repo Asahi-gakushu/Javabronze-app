@@ -1,0 +1,71 @@
+{
+  "id": "strings",
+  "title": "文字列",
+  "description": "Stringの基本メソッド、比較、不変性。",
+  "questions": [
+    {
+      "id": "strings-1",
+      "prompt": "次のコードの出力は？",
+      "code": "System.out.println(\"Hello\".length());",
+      "options": [
+        "5",
+        "4",
+        "6",
+        "コンパイルエラー"
+      ],
+      "correctIndex": 0,
+      "explanation": "length() は文字数を返します。\"Hello\" は5文字です。"
+    },
+    {
+      "id": "strings-2",
+      "prompt": "文字列の内容が等しいかを比較するのに適切なのはどれ？",
+      "options": [
+        "==",
+        "equals()",
+        "compare()",
+        "="
+      ],
+      "correctIndex": 1,
+      "explanation": "== は参照（同じオブジェクトか）を比較します。内容の比較には equals() を使います。"
+    },
+    {
+      "id": "strings-3",
+      "prompt": "次のコードの出力は？",
+      "code": "System.out.println(\"Java\".charAt(1));",
+      "options": [
+        "J",
+        "a",
+        "Java",
+        "v"
+      ],
+      "correctIndex": 1,
+      "explanation": "charAt のインデックスは 0 始まりです。インデックス1は 'a' です。"
+    },
+    {
+      "id": "strings-4",
+      "prompt": "次のコードの出力は？",
+      "code": "String s = \"Java\";\ns.toUpperCase();\nSystem.out.println(s);",
+      "options": [
+        "java",
+        "JAVA",
+        "Java",
+        "コンパイルエラー"
+      ],
+      "correctIndex": 2,
+      "explanation": "String は不変（イミュータブル）です。toUpperCase() は新しい文字列を返すだけで、s 自体は変わりません。"
+    },
+    {
+      "id": "strings-5",
+      "prompt": "次のコードの出力は？",
+      "code": "System.out.println(\"bronze\".substring(1, 4));",
+      "options": [
+        "ron",
+        "bro",
+        "ronze",
+        "bron"
+      ],
+      "correctIndex": 0,
+      "explanation": "substring(1, 4) は開始インデックス1から、終了インデックス4の手前（3）までを返します。"
+    }
+  ]
+}

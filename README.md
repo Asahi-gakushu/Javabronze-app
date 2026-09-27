@@ -1,397 +1,76 @@
-export interface Question {
-  id: string;
-  prompt: string;
-  code?: string;
-  options: string[];
-  correctIndex: number;
-  explanation: string;
-}
+# Javabronze ☕
 
-export interface Topic {
-  id: string;
-  title: string;
-  description: string;
-  questions: Question[];
-}
+Java Bronze（Oracle認定Javaブロンズ）対策の無料4択クイズサイト。
+**一度設定すれば、あとは放置で「コンテンツが増える → 検索流入が増える → 広告・アフィリエイト収益」が回る**ように作ってあります。
 
-export interface TopicProgress {
-  bestScore: number;
-  total: number;
-  attempts: number;
-  lastPlayedAt: string;
-}
+## 自動で回る仕組み
 
-export type ProgressMap = Record<string, TopicProgress>;
+```
+毎週月曜 6:07 (JST)  ── GitHub Actions「Weekly content bot」
+   │
+   ├─ Claude が各トピックの新問題を作成
+   ├─ 別の Claude 呼び出しが「答えを見ずに」解き直す
+   │     → 正解が一致し、曖昧さがない問題だけ採用
+   ├─ 構造チェック（4択・重複・正解番号など）＋ビルド確認
+   ├─ main に自動コミット
+   └─ GitHub Pages に自動デプロイ（無料ホスティング）
+          │
+          ├─ sitemap.xml / robots.txt / トピックごとのSEOメタデータ → 検索流入
+          ├─ 結果画面の「Xでシェア」 → 口コミ流入
+          └─ 収益化
+               ├─ Google AdSense 広告（トップ・結果画面）
+               ├─ Amazonアソシエイト（おすすめ教材。点数で文言が変わる）
+               └─ 応援リンク（Stripe Payment Link / Ko-fi など）
+```
 
-import type { ProgressMap, TopicProgress } from "@/types";
+1ラウンド10問をランダム出題するので、問題が増えるほど「もう一度挑戦する」価値も上がります。
 
-const STORAGE_KEY = "javabronze:progress";
+## 最初に一度だけ必要な作業（人間にしかできない部分）
 
-export function loadProgress(): ProgressMap {
-  if (typeof window === "undefined") return {};
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as ProgressMap) : {};
-  } catch {
-    return {};
-  }
-}
+アカウント作成・審査・支払い受け取りは本人名義が必要なため、ここだけはご自身でお願いします。
+**未設定の項目は自動的に非表示になる**ので、1つずつ進めて大丈夫です。
 
-export function recordAttempt(
-  topicId: string,
-  score: number,
-  total: number
-): TopicProgress {
-  const progress = loadProgress();
-  const existing = progress[topicId];
-  const updated: TopicProgress = {
-    bestScore: Math.max(existing?.bestScore ?? 0, score),
-    total,
-    attempts: (existing?.attempts ?? 0) + 1,
-    lastPlayedAt: new Date().toISOString(),
-  };
-  progress[topicId] = updated;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
-  } catch {
-    // localStorage unavailable (private browsing, quota, etc.) — progress just won't persist
-  }
-  return updated;
-}
+| # | やること | 場所 | 目安 |
+|---|---|---|---|
+| 1 | GitHub Pages を有効化（Source: **GitHub Actions**） | リポジトリ Settings → Pages | 1分 |
+| 2 | `ANTHROPIC_API_KEY` を Secret に登録（問題自動生成用） | Settings → Secrets and variables → Actions → **Secrets** | 2分 |
+| 3 | Amazonアソシエイトに登録し、`NEXT_PUBLIC_AMAZON_TAG` を登録 | 同 → **Variables** | 審査あり |
+| 4 | Google AdSense に申請し、`NEXT_PUBLIC_ADSENSE_CLIENT` / `NEXT_PUBLIC_ADSENSE_SLOT` を登録 | 同 → **Variables** | 審査あり（ある程度の記事量が必要） |
+| 5 | （任意）応援・決済リンクを `NEXT_PUBLIC_SUPPORT_URL` に登録 | 同 → **Variables** | 5分 |
+| 6 | （任意）Google Analytics の `NEXT_PUBLIC_GA_ID` を登録 | 同 → **Variables** | 5分 |
+| 7 | Google Search Console にサイトを登録し `sitemap.xml` を送信 | search.google.com/search-console | 5分 |
 
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
-import "./globals.css";
+独自ドメインを使う場合は `NEXT_PUBLIC_SITE_URL` も Variables に設定してください。
+Variables を変えたら Actions → 「Deploy to GitHub Pages」→ Run workflow で反映されます。
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+### コストの目安
+- ホスティング：GitHub Pages なので無料
+- 問題生成：週1回 × 6トピック × 3問（作成＋検証の2回呼び出し）。1回あたり数十円〜程度のAPI利用料。
+  Actions → 「Weekly content bot」→ Run workflow で問題数を変えて手動実行もできます。
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+### 正直な注意点
+- 収益はアクセス数次第です。最初の数か月は検索エンジンに評価されるまで収益はほぼゼロが普通です。
+- AdSense は中身の薄いサイトだと審査に落ちることがあります。問題が100問程度たまってから申請するのがおすすめ。
+- 自動生成問題は2段階チェックしていますが、完璧ではありません。ときどき `git log` で追加分を眺めて、
+  おかしな問題は `src/data/topics/*.json` から削除してください。
 
-export const metadata: Metadata = {
-  title: "Javabronze — Javaを学ぼう",
-  description: "ブロンズレベルのJavaの基礎を身につけるための、短時間クイズ。",
-};
+## 開発
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
-  return (
-    <html
-      lang="ja"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">
-        <header className="border-b border-bronze-light">
-          <div className="mx-auto max-w-4xl px-6 py-4 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-              <span aria-hidden="true">☕</span>
-              <span>
-                Java<span className="text-bronze-dark">bronze</span>
-              </span>
-            </Link>
-            <span className="text-sm opacity-70">初心者向けJavaクイズ</span>
-          </div>
-        </header>
-        <main className="flex-1 mx-auto w-full max-w-4xl px-6 py-8">{children}</main>
-        <footer className="border-t border-bronze-light">
-          <div className="mx-auto max-w-4xl px-6 py-4 text-sm opacity-60">
-            練習して、失敗して、また挑戦する。それがブロンズをシルバーに変える道。
-          </div>
-        </footer>
-      </body>
-    </html>
-  );
-}
+```bash
+npm install
+npm run dev          # http://localhost:3000
+npm run validate     # 問題データの構造チェック
+npm run lint && npm run typecheck && npm run build   # 静的サイトを out/ に出力
 
-@import "tailwindcss";
+# 手元で問題を生成（APIキーが必要）
+ANTHROPIC_API_KEY=... QUESTIONS_PER_TOPIC=2 TOPICS=basics npm run generate
+```
 
-:root {
-  --background: #fdfaf6;
-  --foreground: #2b1d0e;
-  --bronze: #b3763f;
-  --bronze-dark: #8a5a2f;
-  --bronze-light: #f1e0c9;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-bronze: var(--bronze);
-  --color-bronze-dark: var(--bronze-dark);
-  --color-bronze-light: var(--bronze-light);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1c140c;
-    --foreground: #f1e6d8;
-    --bronze: #d99a5b;
-    --bronze-dark: #b3763f;
-    --bronze-light: #3a2a18;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-import TopicGrid from "@/components/TopicGrid";
-import { topics } from "@/data/topics";
-
-export default function Home() {
-  return (
-    <div>
-      <h1 className="text-2xl font-bold">Javaの基礎を身につけよう</h1>
-      <p className="mt-2 opacity-70">
-        下からトピックを選んで、短い4択クイズに挑戦しましょう。
-        トピックごとの最高スコアはこの端末に保存されます。
-      </p>
-      <div className="mt-8">
-        <TopicGrid topics={topics} />
-      </div>
-    </div>
-  );
-}
-
-import { notFound } from "next/navigation";
-import { getTopic, topics } from "@/data/topics";
-import QuizClient from "@/components/QuizClient";
-
-export function generateStaticParams() {
-  return topics.map((t) => ({ topicId: t.id }));
-}
-
-export default async function QuizPage({
-  params,
-}: {
-  params: Promise<{ topicId: string }>;
-}) {
-  const { topicId } = await params;
-  const topic = getTopic(topicId);
-  if (!topic) notFound();
-
-  return <QuizClient topic={topic} />;
-}
-
-"use client";
-
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import type { ProgressMap, Topic } from "@/types";
-import { loadProgress } from "@/lib/progress";
-
-export default function TopicGrid({ topics }: { topics: Topic[] }) {
-  const [progress, setProgress] = useState<ProgressMap>({});
-
-  useEffect(() => {
-    // One-off read of localStorage (an external, non-reactive store) on mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setProgress(loadProgress());
-  }, []);
-
-  return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      {topics.map((topic) => {
-        const p = progress[topic.id];
-        const pct = p ? Math.round((p.bestScore / p.total) * 100) : null;
-        return (
-          <Link
-            key={topic.id}
-            href={`/quiz/${topic.id}`}
-            className="group rounded-xl border border-bronze-light p-5 transition hover:border-bronze hover:shadow-md"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <h2 className="text-lg font-semibold">{topic.title}</h2>
-              {pct !== null && (
-                <span
-                  className="shrink-0 rounded-full bg-bronze-light px-2 py-0.5 text-xs font-medium text-bronze-dark"
-                  title={`最高スコア: ${p.bestScore}/${p.total}`}
-                >
-                  {pct}%
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-sm opacity-70">{topic.description}</p>
-            <p className="mt-3 text-sm font-medium text-bronze-dark">
-              {p ? "もう一度挑戦する →" : "クイズを始める →"}
-            </p>
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
-"use client";
-
-import Link from "next/link";
-import { useMemo, useState } from "react";
-import type { Topic } from "@/types";
-import { recordAttempt } from "@/lib/progress";
-
-function tierFor(pct: number): { label: string; className: string } {
-  if (pct >= 90) return { label: "ゴールド", className: "bg-yellow-100 text-yellow-800" };
-  if (pct >= 70) return { label: "シルバー", className: "bg-slate-200 text-slate-700" };
-  return { label: "ブロンズ", className: "bg-bronze-light text-bronze-dark" };
-}
-
-export default function QuizClient({ topic }: { topic: Topic }) {
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [score, setScore] = useState(0);
-  const [finished, setFinished] = useState(false);
-
-  const question = topic.questions[questionIndex];
-  const isLast = questionIndex === topic.questions.length - 1;
-  const answered = selectedIndex !== null;
-
-  const percent = useMemo(
-    () => Math.round((score / topic.questions.length) * 100),
-    [score, topic.questions.length]
-  );
-
-  function selectOption(index: number) {
-    if (answered) return;
-    setSelectedIndex(index);
-    if (index === question.correctIndex) {
-      setScore((s) => s + 1);
-    }
-  }
-
-  function goNext() {
-    if (isLast) {
-      recordAttempt(topic.id, score, topic.questions.length);
-      setFinished(true);
-      return;
-    }
-    setQuestionIndex((i) => i + 1);
-    setSelectedIndex(null);
-  }
-
-  function restart() {
-    setQuestionIndex(0);
-    setSelectedIndex(null);
-    setScore(0);
-    setFinished(false);
-  }
-
-  if (finished) {
-    const tier = tierFor(percent);
-    return (
-      <div className="mx-auto max-w-md text-center">
-        <h1 className="text-2xl font-bold">クイズ終了!</h1>
-        <p className="mt-2 opacity-70">{topic.title}</p>
-        <div className="mt-6 rounded-xl border border-bronze-light p-6">
-          <p className="text-4xl font-bold">
-            {score}/{topic.questions.length}
-          </p>
-          <p className="mt-1 opacity-70">正答率 {percent}%</p>
-          <span
-            className={`mt-4 inline-block rounded-full px-3 py-1 text-sm font-semibold ${tier.className}`}
-          >
-            {tier.label}ティア
-          </span>
-        </div>
-        <div className="mt-6 flex justify-center gap-3">
-          <button
-            onClick={restart}
-            className="rounded-lg bg-bronze px-4 py-2 font-medium text-white hover:bg-bronze-dark"
-          >
-            もう一度挑戦する
-          </button>
-          <Link
-            href="/"
-            className="rounded-lg border border-bronze-light px-4 py-2 font-medium hover:border-bronze"
-          >
-            トピック一覧に戻る
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mx-auto max-w-xl">
-      <div className="flex items-center justify-between text-sm opacity-70">
-        <span>{topic.title}</span>
-        <span>
-          質問 {questionIndex + 1} / {topic.questions.length}
-        </span>
-      </div>
-      <div className="mt-2 h-1.5 w-full rounded-full bg-bronze-light">
-        <div
-          className="h-1.5 rounded-full bg-bronze transition-all"
-          style={{
-            width: `${(questionIndex / topic.questions.length) * 100}%`,
-          }}
-        />
-      </div>
-
-      <h1 className="mt-6 text-xl font-semibold">{question.prompt}</h1>
-      {question.code && (
-        <pre className="mt-3 overflow-x-auto rounded-lg bg-bronze-light/40 p-4 font-mono text-sm">
-          {question.code}
-        </pre>
-      )}
-
-      <div className="mt-5 flex flex-col gap-3">
-        {question.options.map((option, index) => {
-          const isCorrect = index === question.correctIndex;
-          const isSelected = index === selectedIndex;
-
-          let stateClasses = "border-bronze-light hover:border-bronze";
-          if (answered) {
-            if (isCorrect) {
-              stateClasses = "border-green-500 bg-green-50 text-green-900";
-            } else if (isSelected) {
-              stateClasses = "border-red-500 bg-red-50 text-red-900";
-            } else {
-              stateClasses = "border-bronze-light opacity-60";
-            }
-          }
-
-          return (
-            <button
-              key={index}
-              onClick={() => selectOption(index)}
-              disabled={answered}
-              className={`rounded-lg border px-4 py-3 text-left transition ${stateClasses}`}
-            >
-              {option}
-            </button>
-          );
-        })}
-      </div>
-
-      {answered && (
-        <div className="mt-4 rounded-lg bg-bronze-light/40 p-4 text-sm">
-          <p className="font-medium">
-            {selectedIndex === question.correctIndex ? "正解!" : "残念…"}
-          </p>
-          <p className="mt-1 opacity-80">{question.explanation}</p>
-        </div>
-      )}
-
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={goNext}
-          disabled={!answered}
-          className="rounded-lg bg-bronze px-5 py-2 font-medium text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-bronze-dark"
-        >
-          {isLast ? "終了する" : "次の質問へ"}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-
+| パス | 役割 |
+|---|---|
+| `src/data/topics/*.json` | 問題データ（トピックごと。ボットがここに追記） |
+| `src/lib/monetization.ts` | 収益化の設定・おすすめ教材リスト |
+| `src/components/AdSlot.tsx` / `AffiliateBox.tsx` / `SupportCta.tsx` / `ShareButton.tsx` | 収益化・拡散パーツ |
+| `scripts/generate-questions.mjs` | Claude による問題作成＋ブラインド検証 |
+| `scripts/validate-questions.mjs` | 問題データの検証（CI・ボット・デプロイで実行） |
+| `.github/workflows/` | CI / Pages デプロイ / 週次コンテンツボット |

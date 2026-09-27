@@ -1,0 +1,68 @@
+{
+  "id": "oop",
+  "title": "クラスとオブジェクト",
+  "description": "クラス、コンストラクタ、アクセス修飾子、継承の基本。",
+  "questions": [
+    {
+      "id": "oop-1",
+      "prompt": "コンストラクタについて正しいものはどれ？",
+      "options": [
+        "戻り値の型としてvoidを書く必要がある",
+        "クラスと同じ名前を持つ",
+        "1つのクラスに1つしか定義できない",
+        "明示的に呼び出さないと実行されない"
+      ],
+      "correctIndex": 1,
+      "explanation": "コンストラクタはクラスと同名で戻り値の型を持ちません。オーバーロードで複数定義でき、new の際に自動で呼ばれます。"
+    },
+    {
+      "id": "oop-2",
+      "prompt": "同じクラス内からのみアクセスできるアクセス修飾子はどれ？",
+      "options": [
+        "public",
+        "protected",
+        "private",
+        "修飾子なし"
+      ],
+      "correctIndex": 2,
+      "explanation": "private は宣言したクラスの中からだけアクセスできます。"
+    },
+    {
+      "id": "oop-3",
+      "prompt": "Javaでクラスを継承するキーワードはどれ？",
+      "options": [
+        "implements",
+        "extends",
+        "inherits",
+        "super"
+      ],
+      "correctIndex": 1,
+      "explanation": "クラスの継承は extends、インタフェースの実装は implements を使います。"
+    },
+    {
+      "id": "oop-4",
+      "prompt": "次のコードの出力は？",
+      "code": "class Counter {\n    int count;\n}\n// ...\nCounter c = new Counter();\nSystem.out.println(c.count);",
+      "options": [
+        "0",
+        "null",
+        "コンパイルエラー",
+        "実行時エラー"
+      ],
+      "correctIndex": 0,
+      "explanation": "フィールド（インスタンス変数）はローカル変数と違い、既定値で初期化されます。int は 0 です。"
+    },
+    {
+      "id": "oop-5",
+      "prompt": "Javaのクラスについて正しいものはどれ？",
+      "options": [
+        "複数のクラスを同時にextendsできる",
+        "extendsを書かないクラスはObjectクラスを継承する",
+        "finalクラスは継承できる",
+        "インタフェースはnewでインスタンス化できる"
+      ],
+      "correctIndex": 1,
+      "explanation": "Java は単一継承です。extends を省略したクラスは暗黙的に java.lang.Object を継承します。"
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "id": "basics",
+  "title": "Javaの基本とデータ型",
+  "description": "mainメソッド、プリミティブ型、変数の宣言と初期化。",
+  "questions": [
+    {
+      "id": "basics-1",
+      "prompt": "Javaプログラムの実行開始点となるmainメソッドの正しい宣言はどれ？",
+      "options": [
+        "public void main(String[] args)",
+        "public static void main(String[] args)",
+        "static int main(String args)",
+        "public static main(String[] args)"
+      ],
+      "correctIndex": 1,
+      "explanation": "mainメソッドは public static void で、引数は String 配列です。"
+    },
+    {
+      "id": "basics-2",
+      "prompt": "次のうち、Javaのプリミティブ型ではないものはどれ？",
+      "options": [
+        "int",
+        "boolean",
+        "String",
+        "char"
+      ],
+      "correctIndex": 2,
+      "explanation": "String はクラス（参照型）です。プリミティブ型は byte, short, int, long, float, double, char, boolean の8種類。"
+    },
+    {
+      "id": "basics-3",
+      "prompt": "次のコードの実行結果は？",
+      "code": "int a = 5;\nint b = 2;\nSystem.out.println(a / b);",
+      "options": [
+        "2",
+        "2.5",
+        "2.0",
+        "コンパイルエラー"
+      ],
+      "correctIndex": 0,
+      "explanation": "int同士の割り算は整数除算になり、小数点以下は切り捨てられて 2 になります。"
+    },
+    {
+      "id": "basics-4",
+      "prompt": "次のうちコンパイルエラーになる宣言はどれ？",
+      "options": [
+        "long l = 100;",
+        "double d = 10;",
+        "int i = 3.14;",
+        "char c = 'A';"
+      ],
+      "correctIndex": 2,
+      "explanation": "double から int への縮小変換は暗黙には行われないため、明示的なキャスト (int) が必要です。"
+    },
+    {
+      "id": "basics-5",
+      "prompt": "ローカル変数について正しい説明はどれ？",
+      "options": [
+        "宣言すると自動的に0で初期化される",
+        "初期化せずに参照するとコンパイルエラーになる",
+        "staticを付けて宣言できる",
+        "メソッドの外でも参照できる"
+      ],
+      "correctIndex": 1,
+      "explanation": "ローカル変数には既定値がありません。値を代入せずに読み出すとコンパイルエラーです。"
+    }
+  ]
+}

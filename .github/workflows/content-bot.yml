@@ -1,0 +1,65 @@
+name: Weekly content bot
+
+# Every Monday 06:07 JST: Claude drafts new questions, a second Claude pass answers them blind,
+# only agreed-on questions are kept, then the site is validated, built, committed and redeployed.
+on:
+  schedule:
+    - cron: "7 21 * * 0"
+  workflow_dispatch:
+    inputs:
+      questions_per_topic:
+        description: "New questions per topic"
+        default: "3"
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: content-bot
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.commit.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Generate questions
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          QUESTIONS_PER_TOPIC: ${{ inputs.questions_per_topic || '3' }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::warning::ANTHROPIC_API_KEY secret is not set; skipping generation."
+            exit 0
+          fi
+          npm run generate
+      - run: npm run validate
+      - run: npm run build
+      - id: commit
+        name: Commit new questions
+        run: |
+          if git diff --quiet -- src/data/topics; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "javabronze-content-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/data/topics
+          git commit -m "content: add weekly Java Bronze questions"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+  # Pushes made with GITHUB_TOKEN don't trigger other workflows, so redeploy explicitly.
+  deploy:
+    needs: generate
+    if: needs.generate.outputs.changed == 'true'
+    uses: ./.github/workflows/deploy.yml

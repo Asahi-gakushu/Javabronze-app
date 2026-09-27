@@ -1,0 +1,70 @@
+{
+  "id": "arrays",
+  "title": "配列",
+  "description": "配列の宣言・初期化・length・拡張for文。",
+  "questions": [
+    {
+      "id": "arrays-1",
+      "prompt": "int[] a = new int[3]; の直後、a[0] の値は？",
+      "options": [
+        "null",
+        "0",
+        "未定義",
+        "コンパイルエラー"
+      ],
+      "correctIndex": 1,
+      "explanation": "配列の要素は型の既定値で初期化されます。int は 0 です。"
+    },
+    {
+      "id": "arrays-2",
+      "prompt": "次のコードの出力は？",
+      "code": "int[] a = {10, 20, 30};\nSystem.out.println(a.length);",
+      "options": [
+        "3",
+        "2",
+        "4",
+        "コンパイルエラー"
+      ],
+      "correctIndex": 0,
+      "explanation": "配列の要素数は length フィールドで取得します（メソッドではないので () は付けません）。"
+    },
+    {
+      "id": "arrays-3",
+      "prompt": "次のコードを実行するとどうなる？",
+      "code": "int[] a = {10, 20, 30};\nSystem.out.println(a[3]);",
+      "options": [
+        "0が出力される",
+        "30が出力される",
+        "ArrayIndexOutOfBoundsExceptionが発生する",
+        "コンパイルエラー"
+      ],
+      "correctIndex": 2,
+      "explanation": "インデックスは 0〜length-1 です。a[3] は範囲外のため実行時に例外が発生します。"
+    },
+    {
+      "id": "arrays-4",
+      "prompt": "次のコードの出力は？",
+      "code": "int sum = 0;\nfor (int n : new int[]{1, 2, 3}) {\n    sum += n;\n}\nSystem.out.println(sum);",
+      "options": [
+        "6",
+        "123",
+        "0",
+        "コンパイルエラー"
+      ],
+      "correctIndex": 0,
+      "explanation": "拡張for文で全要素を順に取り出して合計しています。1 + 2 + 3 = 6。"
+    },
+    {
+      "id": "arrays-5",
+      "prompt": "String[] s = new String[2]; の直後、s[0] の値は？",
+      "options": [
+        "\"\"（空文字）",
+        "null",
+        "\"null\"",
+        "コンパイルエラー"
+      ],
+      "correctIndex": 1,
+      "explanation": "参照型の配列要素の既定値は null です。"
+    }
+  ]
+}
