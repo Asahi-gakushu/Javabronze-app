@@ -29,7 +29,7 @@ export function recordAttempt(
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
   } catch {
-    // localStorage unavailable (private browsing, quota, etc.) — progress just won't persist
+    // localStorage が使えない場合（プライベートブラウズ、容量超過など）— 進捗が保存されないだけ
   }
   return updated;
 }

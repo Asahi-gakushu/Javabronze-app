@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-// Renders nothing until NEXT_PUBLIC_ADSENSE_CLIENT / _SLOT are configured.
+// NEXT_PUBLIC_ADSENSE_CLIENT / _SLOT が設定されるまでは何も表示しない。
 export default function AdSlot({ className = "" }: { className?: string }) {
   const enabled = Boolean(adsenseClient && adsenseSlot);
 
@@ -18,7 +18,7 @@ export default function AdSlot({ className = "" }: { className?: string }) {
     try {
       (window.adsbygoogle = window.adsbygoogle || []).push({});
     } catch {
-      // Ad blockers or a not-yet-loaded script — the page works without the ad.
+      // 広告ブロッカーやスクリプト未読込の場合 — 広告なしでもページは動く。
     }
   }, [enabled]);
 

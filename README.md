@@ -6,7 +6,7 @@ Java Bronze（Oracle認定Javaブロンズ）対策の無料4択クイズサイ�
 ## 自動で回る仕組み
 
 ```
-毎週月曜 6:07 (JST)  ── GitHub Actions「Weekly content bot」
+毎週月曜 6:07 (JST)  ── GitHub Actions「週次コンテンツボット」
    │
    ├─ Claude が各トピックの新問題を作成
    ├─ 別の Claude 呼び出しが「答えを見ずに」解き直す
@@ -41,12 +41,12 @@ Java Bronze（Oracle認定Javaブロンズ）対策の無料4択クイズサイ�
 | 7 | Google Search Console にサイトを登録し `sitemap.xml` を送信 | search.google.com/search-console | 5分 |
 
 独自ドメインを使う場合は `NEXT_PUBLIC_SITE_URL` も Variables に設定してください。
-Variables を変えたら Actions → 「Deploy to GitHub Pages」→ Run workflow で反映されます。
+Variables を変えたら Actions → 「GitHub Pages へデプロイ」→ Run workflow で反映されます。
 
 ### コストの目安
 - ホスティング：GitHub Pages なので無料
 - 問題生成：週1回 × 6トピック × 3問（作成＋検証の2回呼び出し）。1回あたり数十円〜程度のAPI利用料。
-  Actions → 「Weekly content bot」→ Run workflow で問題数を変えて手動実行もできます。
+  Actions → 「週次コンテンツボット」→ Run workflow で問題数を変えて手動実行もできます。
 
 ### 正直な注意点
 - 収益はアクセス数次第です。最初の数か月は検索エンジンに評価されるまで収益はほぼゼロが普通です。

@@ -6,7 +6,7 @@ import arrays from "./topics/arrays.json";
 import strings from "./topics/strings.json";
 import oop from "./topics/oop.json";
 
-// Each topic lives in its own JSON file so scripts/generate-questions.mjs can append to it.
+// scripts/generate-questions.mjs が追記できるよう、トピックごとに別のJSONファイルにしている。
 export const topics: Topic[] = [basics, operators, controlFlow, arrays, strings, oop];
 
 export function getTopic(id: string): Topic | undefined {

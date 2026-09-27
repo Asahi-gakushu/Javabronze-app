@@ -9,7 +9,7 @@ export default function TopicGrid({ topics }: { topics: Topic[] }) {
   const [progress, setProgress] = useState<ProgressMap>({});
 
   useEffect(() => {
-    // One-off read of localStorage (an external, non-reactive store) on mount.
+    // マウント時に一度だけ localStorage（React管理外のストア）を読み込む。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setProgress(loadProgress());
   }, []);

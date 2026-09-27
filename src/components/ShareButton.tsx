@@ -1,6 +1,6 @@
 import { siteUrl } from "@/lib/monetization";
 
-// Word of mouth is the cheapest traffic source: every finished quiz offers a one-tap share.
+// 口コミは最も安い集客手段。クイズを解き終えたら1タップでシェアできるようにする。
 export default function ShareButton({ text, path }: { text: string; path: string }) {
   const params = new URLSearchParams({
     text,

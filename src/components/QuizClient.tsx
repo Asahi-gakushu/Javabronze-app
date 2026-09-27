@@ -9,8 +9,8 @@ import AffiliateBox from "@/components/AffiliateBox";
 import ShareButton from "@/components/ShareButton";
 import SupportCta from "@/components/SupportCta";
 
-// The question bank grows every week (scripts/generate-questions.mjs), so each round
-// draws a random subset instead of making players sit through the whole bank.
+// 問題は毎週増える（scripts/generate-questions.mjs）ので、全問を解かせるのではなく
+// 1ラウンドごとにランダムに一部を出題する。
 const QUESTIONS_PER_ROUND = 10;
 
 function pickRound(questions: Question[]): Question[] {
@@ -29,7 +29,7 @@ function tierFor(pct: number): { label: string; className: string } {
 }
 
 export default function QuizClient({ topic }: { topic: Topic }) {
-  // Deterministic first render (matches the static HTML); shuffled once mounted.
+  // 初回描画は静的HTMLと一致させるため固定順。マウント後にシャッフルする。
   const [round, setRound] = useState<Question[]>(() =>
     topic.questions.slice(0, QUESTIONS_PER_ROUND)
   );
@@ -39,7 +39,7 @@ export default function QuizClient({ topic }: { topic: Topic }) {
   const [finished, setFinished] = useState(false);
 
   useEffect(() => {
-    // Random draw can only happen client-side without a hydration mismatch.
+    // ハイドレーションの不一致を避けるため、ランダム抽選はクライアント側でのみ行う。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRound(pickRound(topic.questions));
   }, [topic.questions]);

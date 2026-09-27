@@ -1,9 +1,9 @@
-// Weekly content bot: asks Claude for new Java Bronze questions, has a second, independent
-// Claude call answer them blind, and keeps only the questions both calls agree on.
-// A growing bank of pages is what brings in search traffic (and therefore ad/affiliate revenue).
+// 週次コンテンツボット：Claude に Java Bronze の新しい問題を作らせ、別の独立した Claude 呼び出しに
+// 答えを見せずに解かせて、両者の答えが一致した問題だけを採用する。
+// 問題（ページ）が増えることが検索流入、ひいては広告・アフィリエイト収益につながる。
 //
-// Usage:  ANTHROPIC_API_KEY=... node scripts/generate-questions.mjs
-// Env:    QUESTIONS_PER_TOPIC (default 3), TOPICS (comma-separated ids, default all)
+// 使い方:  ANTHROPIC_API_KEY=... node scripts/generate-questions.mjs
+// 環境変数: QUESTIONS_PER_TOPIC（既定 3）、TOPICS（カンマ区切りのトピックID、既定は全トピック）
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
@@ -20,7 +20,7 @@ const Draft = z.object({
   questions: z.array(
     z.object({
       prompt: z.string(),
-      code: z.string().describe("Java code shown with the question, or empty string if none"),
+      code: z.string().describe("問題と一緒に表示するJavaコード。なければ空文字"),
       options: z.array(z.string()),
       correctIndex: z.number().int(),
       explanation: z.string(),
@@ -32,10 +32,10 @@ const Review = z.object({
   reviews: z.array(
     z.object({
       number: z.number().int(),
-      answerIndex: z.number().int().describe("0-based index of the single correct option"),
+      answerIndex: z.number().int().describe("唯一の正解の選択肢のインデックス（0始まり）"),
       sound: z
         .boolean()
-        .describe("true only if exactly one option is correct, the code compiles as intended, and the question is within Java Bronze scope"),
+        .describe("正解がちょうど1つで、コードが意図どおりに動作し、Java Bronze の出題範囲内である場合のみ true"),
       reason: z.string(),
     })
   ),
@@ -48,23 +48,23 @@ async function draftQuestions(topic) {
     max_tokens: 16000,
     thinking: { type: "adaptive" },
     system:
-      "You write exam-prep questions for the Oracle Certified Java Programmer, Bronze SE exam, in natural Japanese. " +
-      "Each question has exactly 4 options with exactly one correct answer, and a concise Japanese explanation of why. " +
-      "When a question shows code, the code must behave exactly as the explanation claims on Java 17+. " +
-      "Prefer the kinds of traps the real exam uses (integer division, fall-through, default values, String immutability, scope, overloading).",
+      "あなたは Oracle認定 Java Programmer, Bronze SE 試験の対策問題を、自然な日本語で作成します。" +
+      "各問題は選択肢がちょうど4つで正解は1つだけとし、なぜそれが正解かを簡潔な日本語で解説してください。" +
+      "コードを示す問題では、そのコードが Java 17 以降で解説どおりに動作しなければなりません。" +
+      "本番試験でよく出るひっかけ（整数除算、フォールスルー、既定値、Stringの不変性、スコープ、オーバーロードなど）を積極的に使ってください。",
     messages: [
       {
         role: "user",
         content:
-          `Topic: ${topic.title} — ${topic.description}\n\n` +
-          `Existing questions (do not duplicate these or test the exact same point):\n${existing.join("\n")}\n\n` +
-          `Write ${perTopic} new questions for this topic. Vary which option index is correct.`,
+          `トピック: ${topic.title} — ${topic.description}\n\n` +
+          `既存の問題（これらと重複したり、まったく同じポイントを問うたりしないこと）:\n${existing.join("\n")}\n\n` +
+          `このトピックの新しい問題を${perTopic}問作成してください。正解の選択肢の位置はばらつかせてください。`,
       },
     ],
     output_config: { format: zodOutputFormat(Draft) },
   });
   if (response.stop_reason === "refusal" || !response.parsed_output) {
-    console.warn(`  draft skipped (stop_reason=${response.stop_reason})`);
+    console.warn(`  問題作成をスキップ (stop_reason=${response.stop_reason})`);
     return [];
   }
   return response.parsed_output.questions;
@@ -74,7 +74,7 @@ async function reviewQuestions(drafts) {
   const listing = drafts
     .map((q, n) => {
       const opts = q.options.map((o, i) => `  ${i}: ${o}`).join("\n");
-      return `### Question ${n}\n${q.prompt}\n${q.code ? "```java\n" + q.code + "\n```\n" : ""}${opts}`;
+      return `### 問題 ${n}\n${q.prompt}\n${q.code ? "```java\n" + q.code + "\n```\n" : ""}${opts}`;
     })
     .join("\n\n");
   const response = await client.messages.parse({
@@ -82,14 +82,14 @@ async function reviewQuestions(drafts) {
     max_tokens: 16000,
     thinking: { type: "adaptive" },
     system:
-      "You are a meticulous reviewer of Java certification questions. Work out each answer yourself by tracing the code " +
-      "carefully; do not assume the question is well-formed. Mark a question unsound if more than one option could be " +
-      "argued correct, if the code would not compile when it isn't meant to, or if it relies on behavior outside Java Bronze scope.",
-    messages: [{ role: "user", content: `Answer and review every question below.\n\n${listing}` }],
+      "あなたはJava資格試験問題の厳密なレビュアーです。コードを丁寧にトレースして、各問題の答えを自分で導いてください。" +
+      "問題が正しく作られていると仮定してはいけません。正解と言える選択肢が複数ある場合、意図せずコンパイルエラーになる場合、" +
+      "Java Bronze の範囲外の挙動に依存している場合は、その問題を不適切（sound: false）としてください。",
+    messages: [{ role: "user", content: `以下のすべての問題に解答し、レビューしてください。\n\n${listing}` }],
     output_config: { format: zodOutputFormat(Review) },
   });
   if (response.stop_reason === "refusal" || !response.parsed_output) {
-    console.warn(`  review skipped (stop_reason=${response.stop_reason})`);
+    console.warn(`  レビューをスキップ (stop_reason=${response.stop_reason})`);
     return [];
   }
   return response.parsed_output.reviews;
@@ -119,7 +119,7 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
   const url = new URL(file, dir);
   const topic = JSON.parse(readFileSync(url, "utf8"));
   if (onlyTopics.length && !onlyTopics.includes(topic.id)) continue;
-  console.log(`[${topic.id}] drafting ${perTopic} question(s)…`);
+  console.log(`[${topic.id}] ${perTopic}問を作成中…`);
 
   const drafts = (await draftQuestions(topic)).filter(wellFormed);
   if (!drafts.length) continue;
@@ -130,7 +130,7 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
   for (const [n, q] of drafts.entries()) {
     const review = reviews.find((r) => r.number === n);
     if (!review || !review.sound || review.answerIndex !== q.correctIndex) {
-      console.log(`  rejected #${n}: ${review ? review.reason : "no review"}`);
+      console.log(`  不採用 #${n}: ${review ? review.reason : "レビューなし"}`);
       continue;
     }
     const key = `${q.prompt}\n${q.code || ""}`;
@@ -141,9 +141,9 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
     Object.assign(question, { options: q.options, correctIndex: q.correctIndex, explanation: q.explanation });
     topic.questions.push(question);
     added++;
-    console.log(`  added ${question.id}`);
+    console.log(`  追加 ${question.id}`);
   }
   writeFileSync(url, JSON.stringify(topic, null, 2) + "\n");
 }
 
-console.log(`Done: ${added} question(s) added.`);
+console.log(`完了: ${added}問を追加しました。`);

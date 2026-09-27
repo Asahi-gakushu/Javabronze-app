@@ -1,14 +1,14 @@
-name: Weekly content bot
+name: 週次コンテンツボット
 
-# Every Monday 06:07 JST: Claude drafts new questions, a second Claude pass answers them blind,
-# only agreed-on questions are kept, then the site is validated, built, committed and redeployed.
+# 毎週月曜 6:07（日本時間）: Claude が新しい問題を作り、別の Claude が答えを見ずに解き直す。
+# 答えが一致した問題だけを残し、チェック・ビルド・コミットして再デプロイする。
 on:
   schedule:
     - cron: "7 21 * * 0"
   workflow_dispatch:
     inputs:
       questions_per_topic:
-        description: "New questions per topic"
+        description: "1トピックあたりの新規問題数"
         default: "3"
 
 permissions:
@@ -32,20 +32,20 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - name: Generate questions
+      - name: 問題を生成
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           QUESTIONS_PER_TOPIC: ${{ inputs.questions_per_topic || '3' }}
         run: |
           if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::warning::ANTHROPIC_API_KEY secret is not set; skipping generation."
+            echo "::warning::Secret の ANTHROPIC_API_KEY が未設定のため、問題生成をスキップしました。"
             exit 0
           fi
           npm run generate
       - run: npm run validate
       - run: npm run build
       - id: commit
-        name: Commit new questions
+        name: 新しい問題をコミット
         run: |
           if git diff --quiet -- src/data/topics; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -54,11 +54,11 @@ jobs:
           git config user.name "javabronze-content-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/data/topics
-          git commit -m "content: add weekly Java Bronze questions"
+          git commit -m "コンテンツ: 今週の Java Bronze 問題を追加"
           git push
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
-  # Pushes made with GITHUB_TOKEN don't trigger other workflows, so redeploy explicitly.
+  # GITHUB_TOKEN による push では他のワークフローが起動しないため、明示的に再デプロイする。
   deploy:
     needs: generate
     if: needs.generate.outputs.changed == 'true'

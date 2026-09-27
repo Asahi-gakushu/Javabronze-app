@@ -1,5 +1,5 @@
-// Every revenue channel is driven by a NEXT_PUBLIC_* env var baked in at build time.
-// An unset var turns that channel off, so the site works before any account exists.
+// 各収益チャネルはビルド時に埋め込まれる NEXT_PUBLIC_* 環境変数で制御する。
+// 未設定ならそのチャネルは無効になるので、アカウント登録前でもサイトは動く。
 
 export const siteUrl = (
   process.env.NEXT_PUBLIC_SITE_URL || "https://asahi-gakushu.github.io/Javabronze-app"
@@ -14,7 +14,7 @@ export const gaId = process.env.NEXT_PUBLIC_GA_ID || "";
 export interface AffiliateItem {
   title: string;
   note: string;
-  /** Amazon search keywords — search links avoid dead links when an ASIN goes out of print. */
+  /** Amazon検索キーワード。検索リンクにしておけば、絶版などでリンク切れにならない。 */
   keywords: string;
 }
 
